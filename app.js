@@ -1,5 +1,5 @@
-// YT MUSIC v16.4 - Otomatik Klasör Seçme
-console.log('🎵 YT Music v16.4');
+// YT MUSIC v17.0 - IndexedDB'ye Dosya Kaydetme (Tek Seferlik Klasör)
+console.log('🎵 YT Music v17.0');
 
 let playlist = [];
 let currentIndex = -1;
@@ -12,11 +12,10 @@ let searchResultIndex = -1;
 let localFiles = [];
 let searchMode = null;
 let seekInterval = null;
-let autoSearchAfterFolder = false;
 
-// ============ INDEXEDDB ============
+// ============ INDEXEDDB (DOSYALARI SAKLA) ============
 
-const DB_NAME = 'ytmusic_db_v4';
+const DB_NAME = 'ytmusic_files_v17';
 const DB_VERSION = 1;
 const STORE_NAME = 'music_files';
 
@@ -34,44 +33,97 @@ function openDB() {
     });
 }
 
+// DOSYALARI IndexedDB'ye KAYDET (File objesi dahil)
 async function saveFilesToDB(files) {
     try {
         const db = await openDB();
         const tx = db.transaction(STORE_NAME, 'readwrite');
         const store = tx.objectStore(STORE_NAME);
         store.clear();
+        
         for (let i = 0; i < files.length; i++) {
-            store.put({ id: i, name: files[i].name, fullName: files[i].fullName, size: files[i].size, type: files[i].type });
+            const f = files[i];
+            store.put({
+                id: i,
+                name: f.name,
+                fullName: f.fullName,
+                size: f.size,
+                type: f.type,
+                file: f.file  // FILE OBJESİNİ KAYDET!
+            });
         }
-        return new Promise(resolve => { tx.oncomplete = () => resolve(true); tx.onerror = () => resolve(false); });
-    } catch(e) { return false; }
+        
+        return new Promise((resolve, reject) => {
+            tx.oncomplete = () => resolve(true);
+            tx.onerror = () => reject(tx.error);
+        });
+    } catch(e) {
+        console.error('Kayıt hatası:', e);
+        return false;
+    }
 }
 
+// IndexedDB'den DOSYALARI YÜKLE
 async function loadFilesFromDB() {
     try {
         const db = await openDB();
         const tx = db.transaction(STORE_NAME, 'readonly');
         const store = tx.objectStore(STORE_NAME);
-        return new Promise(resolve => {
+        
+        return new Promise((resolve) => {
             const req = store.getAll();
-            req.onsuccess = () => resolve(req.result.map(item => ({ name: item.name, fullName: item.fullName, size: item.size, type: item.type, file: null })));
+            req.onsuccess = () => {
+                const data = req.result;
+                const files = data.map(item => ({
+                    name: item.name,
+                    fullName: item.fullName,
+                    size: item.size,
+                    type: item.type,
+                    file: item.file  // FILE OBJESİ BURADA!
+                }));
+                resolve(files);
+            };
             req.onerror = () => resolve([]);
         });
     } catch(e) { return []; }
 }
 
+// IndexedDB'de dosya var mı?
+async function hasFilesInDB() {
+    try {
+        const db = await openDB();
+        const tx = db.transaction(STORE_NAME, 'readonly');
+        const store = tx.objectStore(STORE_NAME);
+        return new Promise(resolve => {
+            const req = store.count();
+            req.onsuccess = () => resolve(req.result > 0);
+            req.onerror = () => resolve(false);
+        });
+    } catch(e) { return false; }
+}
+
 // ============ YÜKLE ============
 
-try { playlist = JSON.parse(localStorage.getItem('playlist_v16') || '[]'); } catch(e) { playlist = []; }
+try { playlist = JSON.parse(localStorage.getItem('playlist_v17') || '[]'); } catch(e) { playlist = []; }
 
+// IndexedDB'den dosyaları yükle
 loadFilesFromDB().then(files => {
     if (files.length > 0) {
         localFiles = files;
+        const hasRealFiles = files.some(f => f.file && f.file instanceof File);
+        
         const info = document.getElementById('folderInfo');
-        if (info) info.textContent = `Kayıtlı (${files.length} şarkı) ⚠️`;
         const btn = document.getElementById('folderBtn');
-        if (btn) { btn.style.borderColor = '#ffaa00'; btn.style.color = '#ffaa00'; }
-        console.log('✅ IndexedDBden ' + files.length + ' dosya yüklendi');
+        
+        if (hasRealFiles) {
+            if (info) info.textContent = `Kayıtlı (${files.length} şarkı) ✅`;
+            if (btn) { btn.style.borderColor = '#00ff00'; btn.style.color = '#00ff00'; }
+            console.log('✅ ' + files.length + ' dosya IndexedDBden yüklendi (çalabilir)');
+        } else {
+            if (info) info.textContent = `Kayıtlı (${files.length} şarkı) ⚠️`;
+            if (btn) { btn.style.borderColor = '#ffaa00'; btn.style.color = '#ffaa00'; }
+            console.log('⚠️ ' + files.length + ' dosya var ama File objesi bozuk');
+        }
     }
 });
 
@@ -84,11 +136,7 @@ if (window.YT && YT.Player) onYouTubeIframeAPIReady();
 
 // ============ KLASÖR ============
 
-function pickFolder() { 
-    autoSearchAfterFolder = true;
-    document.getElementById('folderInput').click(); 
-}
-
+function pickFolder() { document.getElementById('folderInput').click(); }
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 function cleanFileName(name) {
@@ -127,11 +175,7 @@ function cleanFileName(name) {
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('folderInput').addEventListener('change', async (e) => {
         const allFiles = Array.from(e.target.files);
-        if (!allFiles.length) { 
-            showStatus('❌ Klasör boş!'); 
-            autoSearchAfterFolder = false;
-            return; 
-        }
+        if (!allFiles.length) { showStatus('❌ Klasör boş!'); return; }
         
         showStatus(`📂 ${allFiles.length} dosya taranıyor...`);
         await sleep(50);
@@ -148,17 +192,14 @@ document.addEventListener('DOMContentLoaded', () => {
             return true;
         });
         
-        if (!musicFiles.length) { 
-            showStatus('❌ Müzik bulunamadı!'); 
-            autoSearchAfterFolder = false;
-            return; 
-        }
+        if (!musicFiles.length) { showStatus('❌ Müzik bulunamadı!'); return; }
         
-        showStatus(`📂 ${musicFiles.length} müzik bulundu`);
+        showStatus(`📂 ${musicFiles.length} müzik bulundu, IndexedDBye kaydediliyor...`);
         await sleep(50);
         
+        // DOSYALARI İŞLE VE KAYDET
         localFiles = [];
-        const chunkSize = 50;
+        const chunkSize = 20; // Daha küçük chunk
         
         for (let i = 0; i < musicFiles.length; i += chunkSize) {
             const chunk = musicFiles.slice(i, i + chunkSize);
@@ -171,11 +212,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     file: f
                 });
             }
-            showStatus(`📂 ${Math.min(i + chunkSize, musicFiles.length)}/${musicFiles.length}`);
-            await sleep(20);
+            showStatus(`💾 ${Math.min(i + chunkSize, musicFiles.length)}/${musicFiles.length} kaydediliyor...`);
+            await sleep(50);
         }
         
-        await saveFilesToDB(localFiles);
+        // IndexedDB'ye kaydet
+        const saved = await saveFilesToDB(localFiles);
         
         let folderName = 'Müzik';
         try {
@@ -184,21 +226,14 @@ document.addEventListener('DOMContentLoaded', () => {
             if (parts.length > 1) folderName = cleanFileName(parts[0]);
         } catch(e) {}
         
-        document.getElementById('folderInfo').textContent = `${folderName} (${localFiles.length} şarkı) ✅`;
-        document.getElementById('folderBtn').style.borderColor = '#00ff00';
-        document.getElementById('folderBtn').style.color = '#00ff00';
-        
-        showStatus(`✅ ${localFiles.length} şarkı hazır!`);
-        
-        // OTOMATİK ARAMA
-        if (autoSearchAfterFolder) {
-            autoSearchAfterFolder = false;
-            const currentQuery = document.getElementById('searchInput').value.trim();
-            if (currentQuery) {
-                setTimeout(() => searchLocal(), 300);
-            } else if (searchMode === 'local') {
-                setTimeout(() => searchLocal(), 300);
-            }
+        if (saved) {
+            document.getElementById('folderInfo').textContent = `${folderName} (${localFiles.length} şarkı) ✅`;
+            document.getElementById('folderBtn').style.borderColor = '#00ff00';
+            document.getElementById('folderBtn').style.color = '#00ff00';
+            showStatus(`✅ ${localFiles.length} şarkı kalıcı olarak kaydedildi!`);
+        } else {
+            document.getElementById('folderInfo').textContent = `${folderName} (${localFiles.length} şarkı) ⚠️`;
+            showStatus('⚠️ Kayıt başarısız, depolama alanı yetersiz olabilir');
         }
         
         e.target.value = '';
@@ -293,23 +328,7 @@ function searchLocal() {
         return;
     }
     
-    const hasFiles = localFiles.some(f => f.file && f.file instanceof File);
-    
-    if (!hasFiles) {
-        document.getElementById('resultsList').innerHTML = `
-            <div class="empty-state" style="color:#ffaa00">
-                ⚠️ ${localFiles.length} şarkı kayıtlı ama erişim yok<br>
-                <small style="color:#888">Klasör seçme penceresi açılıyor...</small>
-            </div>`;
-        
-        // OTOMATİK KLASÖR SEÇ
-        setTimeout(() => {
-            pickFolder();
-        }, 500);
-        
-        return;
-    }
-    
+    // Filtrele ve göster
     searchResults = localFiles
         .filter(f => !query || f.name.toLowerCase().includes(query))
         .map(f => ({ type: 'local', name: f.name, file: f }));
@@ -369,8 +388,9 @@ function playResult(index) {
     if (item.type === 'youtube') {
         addAndPlay({ id: item.videoId, title: item.title, artist: item.artist, thumbnail: item.thumbnail, source: 'youtube' });
     } else {
+        // File objesini kontrol et
         if (!item.file || !item.file.file) {
-            showStatus('❌ Dosya bellekte yok. Klasörü tekrar seçin.');
+            showStatus('❌ Dosya bulunamadı! IndexedDBden yüklenemedi.');
             return;
         }
         addAndPlay({ id: 'local_' + item.name, title: item.name, artist: 'Telefon', thumbnail: '', source: 'local', file: item.file });
@@ -445,7 +465,7 @@ function playYouTube(track) {
                 playerVars: { autoplay: 1, controls: 0, playsinline: 1, origin: window.location.origin },
                 events: {
                     onReady: (e) => {
-                        e.target.setVolume(localStorage.getItem('vol_v16') || 70);
+                        e.target.setVolume(localStorage.getItem('vol_v17') || 70);
                         e.target.unMute(); e.target.playVideo();
                         startSeekUpdate();
                     },
@@ -472,14 +492,14 @@ function playYouTube(track) {
 
 function playLocal(track) {
     if (!track.file || !track.file.file) {
-        showStatus('❌ Dosya bulunamadı! Klasörü tekrar seçin.');
+        showStatus('❌ Dosya bulunamadı! IndexedDBde yok.');
         stopAll(); document.getElementById('player').style.display = 'none'; return;
     }
     
     try {
         const url = URL.createObjectURL(track.file.file);
         localAudio.src = url;
-        localAudio.volume = (localStorage.getItem('vol_v16') || 70) / 100;
+        localAudio.volume = (localStorage.getItem('vol_v17') || 70) / 100;
         localAudio.onloadedmetadata = () => { localAudio.play(); startSeekUpdate(); };
         localAudio.onended = () => { stopSeekUpdate(); nextTrack(); };
         localAudio.onerror = () => { stopSeekUpdate(); setTimeout(() => nextTrack(), 1000); };
@@ -584,7 +604,7 @@ function resumeTrack() {
 function setVolume(val) {
     if (ytPlayer) ytPlayer.setVolume(val);
     localAudio.volume = val / 100;
-    localStorage.setItem('vol_v16', val);
+    localStorage.setItem('vol_v17', val);
 }
 
 // ============ PLAYLIST ============
@@ -631,12 +651,12 @@ function removeTrack(i) {
 // ============ YARDIMCILAR ============
 
 function esc(t) { if(!t) return ''; const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
-function savePlaylist() { try { localStorage.setItem('playlist_v16', JSON.stringify(playlist)); } catch(e) {} }
-function saveSession(t) { try { localStorage.setItem('session_v16', JSON.stringify({id:t.id, index:currentIndex})); } catch(e) {} }
+function savePlaylist() { try { localStorage.setItem('playlist_v17', JSON.stringify(playlist)); } catch(e) {} }
+function saveSession(t) { try { localStorage.setItem('session_v17', JSON.stringify({id:t.id, index:currentIndex})); } catch(e) {} }
 
 function restoreSession() {
     try {
-        const s = localStorage.getItem('session_v16');
+        const s = localStorage.getItem('session_v17');
         if (s && playlist.length) {
             const d = JSON.parse(s), t = playlist.find(x => x.id === d.id);
             if (t) {
@@ -663,6 +683,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-document.getElementById('volSlider').value = localStorage.getItem('vol_v16') || 70;
+document.getElementById('volSlider').value = localStorage.getItem('vol_v17') || 70;
 updateUI();
-console.log('✅ v16.4 hazır - Otomatik klasör seçme');
+console.log('✅ v17.0 hazır - IndexedDB dosya depolama');
