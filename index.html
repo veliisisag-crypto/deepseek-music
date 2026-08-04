@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#ff0000">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>YT Müzik v14.0</title>
+    <title>YT Müzik v16.0</title>
     <link rel="manifest" href="manifest.json">
     <style>
         *{margin:0;padding:0;box-sizing:border-box}
@@ -58,7 +58,10 @@
         .player-box{display:none}
         #thumbnail{width:100%;border-radius:12px;margin-bottom:12px;max-height:200px;object-fit:cover;background:#222}
         #title{font-size:1.1em;margin-bottom:3px;word-break:break-word}
-        #artist{color:#888;font-size:0.85em;margin-bottom:15px}
+        #artist{color:#888;font-size:0.85em;margin-bottom:10px}
+        
+        .seek-row{display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:11px;color:#888}
+        .seek-row input[type=range]{flex:1;accent-color:#ff0000;height:3px;margin:0}
         
         .controls{display:flex;gap:8px;justify-content:center;margin:12px 0}
         .controls button{width:50px;height:50px;border-radius:50%;border:none;font-size:18px;cursor:pointer;background:#333;color:#fff}
@@ -88,8 +91,8 @@
 </head>
 <body>
     <div class="top-bar">
-        <span class="version">🎵 v14.0</span>
-        <span class="top-title">Bas-Konuş Müzik</span>
+        <span class="version">🎵 v16.0</span>
+        <span class="top-title">YouTube Müzik</span>
     </div>
 
     <div class="container">
@@ -127,6 +130,11 @@
             <h3 id="title">-</h3>
             <p id="artist">-</p>
             
+            <div class="seek-row">
+                <span id="seekTime">00:00 / 00:00</span>
+                <input type="range" id="seekSlider" min="0" max="100" value="0" oninput="seekTo(this.value)">
+            </div>
+            
             <div class="controls">
                 <button onclick="prevTrack()" id="prevBtn" disabled>⏮️</button>
                 <button onclick="togglePlay()" id="playBtn" class="btn-play-main">▶️</button>
@@ -155,6 +163,6 @@
     <input type="file" id="folderInput" webkitdirectory directory multiple style="display:none" accept="audio/*">
 
     <script src="https://www.youtube.com/iframe_api"></script>
-    <script src="app.js?v=14.0"></script>
+    <script src="app.js?v=16.0"></script>
 </body>
 </html>
