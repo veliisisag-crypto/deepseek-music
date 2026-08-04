@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#ff0000">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>YT Müzik v16.0</title>
+    <title>YT Müzik v16.2</title>
     <link rel="manifest" href="manifest.json">
     <style>
         *{margin:0;padding:0;box-sizing:border-box}
@@ -17,6 +17,16 @@
         .top-title{color:#888;font-size:13px}
         
         .box{background:#1a1a1a;border-radius:15px;padding:18px;margin-bottom:15px;border:1px solid #222}
+        
+        /* PLAYER - HER ZAMAN ÜSTTE */
+        .player-box{
+            display:none;
+            position:sticky;
+            top:10px;
+            z-index:100;
+            background:#1a1a1a;
+            box-shadow:0 5px 20px rgba(0,0,0,0.5);
+        }
         
         .search-row{display:flex;gap:8px;margin-bottom:8px}
         .search-row input{flex:1;padding:14px 16px;border:2px solid #333;border-radius:25px;background:#111;color:#fff;font-size:15px;-webkit-appearance:none;min-width:0}
@@ -34,7 +44,7 @@
         
         .status-bar{text-align:center;font-size:12px;color:#888;min-height:18px;margin:5px 0}
         
-        .results-box{display:none;max-height:350px;overflow-y:auto}
+        .results-box{max-height:350px;overflow-y:auto}
         .results-box::-webkit-scrollbar{width:3px}
         .results-box::-webkit-scrollbar-track{background:#111}
         .results-box::-webkit-scrollbar-thumb{background:#ff0000;border-radius:2px}
@@ -55,8 +65,7 @@
         .badge-yt{background:#ff0000;color:#fff}
         .badge-local{background:#0066ff;color:#fff}
         
-        .player-box{display:none}
-        #thumbnail{width:100%;border-radius:12px;margin-bottom:12px;max-height:200px;object-fit:cover;background:#222}
+        #thumbnail{width:100%;border-radius:12px;margin-bottom:12px;max-height:180px;object-fit:cover;background:#222}
         #title{font-size:1.1em;margin-bottom:3px;word-break:break-word}
         #artist{color:#888;font-size:0.85em;margin-bottom:10px}
         
@@ -91,40 +100,12 @@
 </head>
 <body>
     <div class="top-bar">
-        <span class="version">🎵 v16.0</span>
+        <span class="version">🎵 v16.2</span>
         <span class="top-title">YouTube Müzik</span>
     </div>
 
     <div class="container">
-        <!-- ARAMA -->
-        <div class="box">
-            <div class="search-row">
-                <input type="text" id="searchInput" placeholder="Şarkı ara veya link yapıştır..." autocomplete="off">
-                <button onclick="startVoiceSearch()" class="btn btn-mic" id="micBtn" title="Sesli Ara">🎤</button>
-            </div>
-            <div class="search-row">
-                <button onclick="searchYouTube()" class="btn btn-yt">🔍 YouTube'da Ara</button>
-                <button onclick="searchLocal()" class="btn btn-local">📱 Telefonda Ara</button>
-            </div>
-            <div class="search-row">
-                <button onclick="pasteAndPlay()" class="btn btn-paste">📋 Yapıştır ve Oynat</button>
-            </div>
-            <button onclick="pickFolder()" class="btn-folder" id="folderBtn">
-                📂 Klasör Seç (<span id="folderInfo">seçilmedi</span>)
-            </button>
-            <div class="status-bar" id="statusBar"></div>
-        </div>
-
-        <!-- SONUÇLAR -->
-        <div id="resultsBox" class="box results-box">
-            <div class="results-header">
-                <span id="resultsTitle">Sonuçlar (<span id="resultCount">0</span>)</span>
-                <button onclick="closeResults()" class="btn-close">✕</button>
-            </div>
-            <div id="resultsList"></div>
-        </div>
-
-        <!-- PLAYER -->
+        <!-- PLAYER - EN ÜSTTE, STICKY -->
         <div id="player" class="box player-box">
             <img id="thumbnail" src="" alt="Kapak">
             <h3 id="title">-</h3>
@@ -148,6 +129,34 @@
             </div>
         </div>
 
+        <!-- ARAMA -->
+        <div class="box">
+            <div class="search-row">
+                <input type="text" id="searchInput" placeholder="Şarkı ara veya link yapıştır..." autocomplete="off">
+                <button onclick="startVoiceSearch()" class="btn btn-mic" id="micBtn" title="Sesli Ara">🎤</button>
+            </div>
+            <div class="search-row">
+                <button onclick="searchYouTube()" class="btn btn-yt">🔍 YouTube'da Ara</button>
+                <button onclick="searchLocal()" class="btn btn-local">📱 Telefonda Ara</button>
+            </div>
+            <div class="search-row">
+                <button onclick="pasteAndPlay()" class="btn btn-paste">📋 Yapıştır ve Oynat</button>
+            </div>
+            <button onclick="pickFolder()" class="btn-folder" id="folderBtn">
+                📂 Klasör Seç (<span id="folderInfo">seçilmedi</span>)
+            </button>
+            <div class="status-bar" id="statusBar"></div>
+        </div>
+
+        <!-- SONUÇLAR -->
+        <div id="resultsBox" class="box results-box" style="display:none">
+            <div class="results-header">
+                <span id="resultsTitle">Sonuçlar (<span id="resultCount">0</span>)</span>
+                <button onclick="closeResults()" class="btn-close">✕</button>
+            </div>
+            <div id="resultsList"></div>
+        </div>
+
         <!-- PLAYLIST -->
         <div class="box">
             <div class="playlist-header">
@@ -163,6 +172,6 @@
     <input type="file" id="folderInput" webkitdirectory directory multiple style="display:none" accept="audio/*">
 
     <script src="https://www.youtube.com/iframe_api"></script>
-    <script src="app.js?v=16.0"></script>
+    <script src="app.js?v=16.2"></script>
 </body>
 </html>
