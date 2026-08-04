@@ -1,5 +1,5 @@
-// YT MUSIC v16.1 - Yerel Dosya Çalma Düzeltmesi
-console.log('🎵 YT Music v16.1');
+// YT MUSIC v16.3 - Klasör Durumu Düzeltmesi
+console.log('🎵 YT Music v16.3');
 
 let playlist = [];
 let currentIndex = -1;
@@ -15,7 +15,7 @@ let seekInterval = null;
 
 // ============ INDEXEDDB ============
 
-const DB_NAME = 'ytmusic_db_v2';
+const DB_NAME = 'ytmusic_db_v3';
 const DB_VERSION = 1;
 const STORE_NAME = 'music_files';
 
@@ -67,10 +67,17 @@ loadFilesFromDB().then(files => {
     if (files.length > 0) {
         localFiles = files;
         const info = document.getElementById('folderInfo');
-        if (info) info.textContent = `Kayıtlı (${files.length} şarkı)`;
+        if (info) info.textContent = `Kayıtlı (${files.length} şarkı) ⚠️`;
         const btn = document.getElementById('folderBtn');
-        if (btn) { btn.style.borderColor = '#00ff00'; btn.style.color = '#00ff00'; }
-        console.log('✅ IndexedDBden ' + files.length + ' dosya yüklendi (çalmak için klasörü tekrar seçin)');
+        if (btn) { btn.style.borderColor = '#ffaa00'; btn.style.color = '#ffaa00'; }
+        console.log('✅ IndexedDBden ' + files.length + ' dosya yüklendi');
+        
+        setTimeout(() => {
+            const hasFiles = localFiles.some(f => f.file && f.file instanceof File);
+            if (!hasFiles && localFiles.length > 0) {
+                showStatus('⚠️ Dosyalar bellekte yok, klasörü tekrar seçin');
+            }
+        }, 1000);
     }
 });
 
@@ -88,11 +95,8 @@ function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 function cleanFileName(name) {
     let fixed = name;
-    
-    // URL decode
     try { fixed = decodeURIComponent(name); } catch(e) {}
     
-    // Manuel Türkçe karakter
     const chars = {
         '%C4%B1':'ı','%C4%B0':'İ','%C3%BC':'ü','%C3%9C':'Ü',
         '%C3%B6':'ö','%C3%96':'Ö','%C3%A7':'ç','%C3%87':'Ç',
@@ -103,39 +107,22 @@ function cleanFileName(name) {
         while (fixed.includes(c)) fixed = fixed.replace(c, r);
     }
     
-    // SADECE dosya adı (son bölüm)
     const parts = fixed.split('/');
     fixed = parts[parts.length - 1];
-    
-    // Uzantıyı kaldır
     fixed = fixed.replace(/\.[^.]+$/, '');
-    
-    // === TÜM GEREKSİZ EKLERİ TEMİZLE ===
-    
-    // Baştaki numaralar
     fixed = fixed.replace(/^\d+[\.\-\s\)]\s*/, '');
     fixed = fixed.replace(/^\d+\s*-\s*/, '');
-    
-    // YouTube ID'leri: (_abc123_) veya sonunda 11 karakter
     fixed = fixed.replace(/\(_[a-zA-Z0-9_-]{8,15}_\)/g, '');
     fixed = fixed.replace(/\([a-zA-Z0-9_-]{11}\)$/g, '');
     fixed = fixed.replace(/[a-zA-Z0-9_-]{11}$/g, '');
-    
-    // Parantez içindeki her şeyi temizle
     fixed = fixed.replace(/\(.*?\)/g, '');
     fixed = fixed.replace(/\[.*?\]/g, '');
-    
-    // Tire ile ayrılmış son ekleri temizle
     fixed = fixed.replace(/\s*-\s*$/, '');
-    
-    // Fazla boşluk
     fixed = fixed.replace(/\s+/g, ' ').trim();
     
-    // Hala bozuksa
     if (!fixed || fixed.length < 2) {
         fixed = parts[parts.length - 1]?.replace(/\.[^.]+$/, '') || 'Bilinmeyen';
     }
-    
     return fixed;
 }
 
@@ -147,7 +134,6 @@ document.addEventListener('DOMContentLoaded', () => {
         showStatus(`📂 ${allFiles.length} dosya taranıyor...`);
         await sleep(50);
         
-        // SADECE müzik dosyaları
         const validExts = ['mp3','m4a','wav','flac','ogg','aac','opus','wma'];
         const junkWords = ['ringtone','rington','alarm','notification','notify','ui_sound','system','camera','screenshot','whatsapp audio','whatsapp voice','ptt-','voice note','call recording','callrecord'];
         
@@ -165,31 +151,26 @@ document.addEventListener('DOMContentLoaded', () => {
         showStatus(`📂 ${musicFiles.length} müzik bulundu`);
         await sleep(50);
         
-        // DOSYALARI İŞLE - File objesini KORU
         localFiles = [];
         const chunkSize = 50;
         
         for (let i = 0; i < musicFiles.length; i += chunkSize) {
             const chunk = musicFiles.slice(i, i + chunkSize);
-            
             for (const f of chunk) {
                 localFiles.push({
                     name: cleanFileName(f.name),
                     fullName: f.name,
                     size: f.size,
                     type: f.type,
-                    file: f  // ← FILE OBJESİ BURADA!
+                    file: f
                 });
             }
-            
             showStatus(`📂 ${Math.min(i + chunkSize, musicFiles.length)}/${musicFiles.length}`);
             await sleep(20);
         }
         
-        // IndexedDB'ye META veriyi kaydet (File objesi olmadan)
         await saveFilesToDB(localFiles);
         
-        // Klasör adı
         let folderName = 'Müzik';
         try {
             const path = musicFiles[0].webkitRelativePath || musicFiles[0].name;
@@ -285,20 +266,23 @@ function searchLocal() {
     
     showResults('📱 Telefon' + (query ? ': ' + query : ''));
     
-    // Eğer localFiles boşsa ama IndexedDB'de varsa, klasörü tekrar seçmesini söyle
-    const hasFiles = localFiles.some(f => f.file !== null);
-    
     if (localFiles.length === 0) {
-        document.getElementById('resultsList').innerHTML = '<div class="empty-state">📂 Klasör seçilmedi<br><button onclick="pickFolder()" style="margin-top:8px;background:#0066ff;color:#fff;border:none;padding:8px 16px;border-radius:15px;cursor:pointer">📂 Klasör Seç</button></div>';
+        document.getElementById('resultsList').innerHTML = `
+            <div class="empty-state">
+                📂 Henüz klasör seçilmedi<br>
+                <button onclick="pickFolder()" style="margin-top:8px;background:#0066ff;color:#fff;border:none;padding:10px 20px;border-radius:20px;cursor:pointer;font-size:14px;width:100%">📂 Klasör Seç</button>
+            </div>`;
         return;
     }
     
+    const hasFiles = localFiles.some(f => f.file && f.file instanceof File);
+    
     if (!hasFiles) {
         document.getElementById('resultsList').innerHTML = `
-            <div class="empty-state">
-                ⚠️ Dosyalar bellekte yok<br>
-                <small>Uygulama yeniden açıldığında klasörü tekrar seçmelisiniz</small>
-                <button onclick="pickFolder()" style="margin-top:8px;background:#0066ff;color:#fff;border:none;padding:8px 16px;border-radius:15px;cursor:pointer;display:block;width:100%">📂 Klasörü Tekrar Seç</button>
+            <div class="empty-state" style="color:#ffaa00">
+                ⚠️ Klasör yeniden bağlanmalı<br>
+                <small style="color:#888">${localFiles.length} şarkı kayıtlı ama dosyalara erişim yok</small>
+                <button onclick="pickFolder()" style="margin-top:8px;background:#0066ff;color:#fff;border:none;padding:10px 20px;border-radius:20px;cursor:pointer;font-size:14px;width:100%">📂 Klasörü Tekrar Seç</button>
             </div>`;
         return;
     }
@@ -362,7 +346,6 @@ function playResult(index) {
     if (item.type === 'youtube') {
         addAndPlay({ id: item.videoId, title: item.title, artist: item.artist, thumbnail: item.thumbnail, source: 'youtube' });
     } else {
-        // Yerel dosya - File objesini kontrol et
         if (!item.file || !item.file.file) {
             showStatus('❌ Dosya bellekte yok. Klasörü tekrar seçin.');
             return;
@@ -421,11 +404,8 @@ function playTrack(track) {
     isPlaying = true;
     currentSource = track.source;
     
-    if (track.source === 'youtube') {
-        playYouTube(track);
-    } else if (track.source === 'local') {
-        playLocal(track);
-    }
+    if (track.source === 'youtube') playYouTube(track);
+    else if (track.source === 'local') playLocal(track);
     
     updateUI();
     saveSession(track);
@@ -443,8 +423,7 @@ function playYouTube(track) {
                 events: {
                     onReady: (e) => {
                         e.target.setVolume(localStorage.getItem('vol_v16') || 70);
-                        e.target.unMute();
-                        e.target.playVideo();
+                        e.target.unMute(); e.target.playVideo();
                         startSeekUpdate();
                     },
                     onStateChange: (e) => {
@@ -452,7 +431,7 @@ function playYouTube(track) {
                         else if (e.data === 1) { isPlaying = true; document.getElementById('playBtn').textContent = '⏸️'; }
                         else if (e.data === 2) { isPlaying = false; document.getElementById('playBtn').textContent = '▶️'; }
                     },
-                    onError: () => { stopSeekUpdate(); showStatus('❌ Video çalınamadı'); setTimeout(() => nextTrack(), 1000); }
+                    onError: () => { stopSeekUpdate(); setTimeout(() => nextTrack(), 1000); }
                 }
             });
         } catch(e) {}
@@ -469,48 +448,20 @@ function playYouTube(track) {
 }
 
 function playLocal(track) {
-    console.log('📱 Yerel çalınıyor:', track.title);
-    
-    // File objesini kontrol et
     if (!track.file || !track.file.file) {
         showStatus('❌ Dosya bulunamadı! Klasörü tekrar seçin.');
-        stopAll();
-        document.getElementById('player').style.display = 'none';
-        return;
+        stopAll(); document.getElementById('player').style.display = 'none'; return;
     }
     
     try {
         const url = URL.createObjectURL(track.file.file);
         localAudio.src = url;
         localAudio.volume = (localStorage.getItem('vol_v16') || 70) / 100;
-        
-        localAudio.onloadedmetadata = () => {
-            localAudio.play();
-            startSeekUpdate();
-        };
-        
-        localAudio.onended = () => {
-            stopSeekUpdate();
-            nextTrack();
-        };
-        
-        localAudio.onerror = (e) => {
-            console.error('Yerel oynatma hatası:', e);
-            stopSeekUpdate();
-            showStatus('❌ Dosya çalınamadı: ' + (localAudio.error?.message || 'bilinmeyen hata'));
-            setTimeout(() => nextTrack(), 1000);
-        };
-        
-        // Hemen çalmayı dene (onloadedmetadata beklemeden)
-        localAudio.play().catch(err => {
-            console.log('Play hatası:', err);
-            showStatus('⚠️ Oynatma gecikti, bekleyin...');
-        });
-        
-    } catch(e) {
-        console.error('Local play hatası:', e);
-        showStatus('❌ Dosya açılamadı');
-    }
+        localAudio.onloadedmetadata = () => { localAudio.play(); startSeekUpdate(); };
+        localAudio.onended = () => { stopSeekUpdate(); nextTrack(); };
+        localAudio.onerror = () => { stopSeekUpdate(); setTimeout(() => nextTrack(), 1000); };
+        localAudio.play().catch(() => {});
+    } catch(e) {}
 }
 
 function stopAll() {
@@ -528,12 +479,8 @@ function togglePlay() {
         if (currentIndex >= 0 && playlist[currentIndex]) playTrack(playlist[currentIndex]);
         return;
     }
-    
     if (currentSource === 'youtube' && ytPlayer) {
-        try {
-            if (isPlaying) ytPlayer.pauseVideo();
-            else { ytPlayer.unMute(); ytPlayer.playVideo(); }
-        } catch(e) { if (currentIndex >= 0 && playlist[currentIndex]) playTrack(playlist[currentIndex]); }
+        try { if (isPlaying) ytPlayer.pauseVideo(); else { ytPlayer.unMute(); ytPlayer.playVideo(); } } catch(e) {}
     } else if (currentSource === 'local' && localAudio.src) {
         if (isPlaying) localAudio.pause(); else localAudio.play();
         isPlaying = !isPlaying;
@@ -546,80 +493,56 @@ function togglePlay() {
 function startSeekUpdate() {
     stopSeekUpdate();
     seekInterval = setInterval(() => {
-        let current = 0, duration = 0;
-        
+        let c = 0, d = 0;
         if (currentSource === 'youtube' && ytPlayer && ytPlayer.getCurrentTime) {
-            current = ytPlayer.getCurrentTime() || 0;
-            duration = ytPlayer.getDuration() || 0;
+            c = ytPlayer.getCurrentTime() || 0; d = ytPlayer.getDuration() || 0;
         } else if (currentSource === 'local' && localAudio.duration) {
-            current = localAudio.currentTime;
-            duration = localAudio.duration;
+            c = localAudio.currentTime; d = localAudio.duration;
         }
-        
-        if (duration > 0) {
-            document.getElementById('seekSlider').max = duration;
-            document.getElementById('seekSlider').value = current;
-            document.getElementById('seekTime').textContent = formatTime(current) + ' / ' + formatTime(duration);
+        if (d > 0) {
+            document.getElementById('seekSlider').max = d;
+            document.getElementById('seekSlider').value = c;
+            document.getElementById('seekTime').textContent = formatTime(c) + ' / ' + formatTime(d);
         }
     }, 500);
 }
 
-function stopSeekUpdate() {
-    if (seekInterval) { clearInterval(seekInterval); seekInterval = null; }
-}
+function stopSeekUpdate() { if (seekInterval) { clearInterval(seekInterval); seekInterval = null; } }
 
 function seekTo(value) {
-    const time = parseFloat(value);
-    if (currentSource === 'youtube' && ytPlayer && ytPlayer.seekTo) {
-        ytPlayer.seekTo(time, true);
-    } else if (currentSource === 'local') {
-        localAudio.currentTime = time;
-    }
+    const t = parseFloat(value);
+    if (currentSource === 'youtube' && ytPlayer) ytPlayer.seekTo(t, true);
+    else if (currentSource === 'local') localAudio.currentTime = t;
 }
 
 function formatTime(sec) {
     if (!sec || isNaN(sec)) return '00:00';
-    const m = Math.floor(sec / 60);
-    const s = Math.floor(sec % 60);
-    return m.toString().padStart(2, '0') + ':' + s.toString().padStart(2, '0');
+    const m = Math.floor(sec / 60), s = Math.floor(sec % 60);
+    return m.toString().padStart(2,'0') + ':' + s.toString().padStart(2,'0');
 }
 
 // ============ GEZİNME ============
 
 function nextTrack() {
     if (searchResults.length > 0 && searchResultIndex < searchResults.length - 1) {
-        playResult(searchResultIndex + 1);
-        return;
+        playResult(searchResultIndex + 1); return;
     }
-    
     if (currentIndex < playlist.length - 1) {
-        currentIndex++;
-        playTrack(playlist[currentIndex]);
-        return;
+        currentIndex++; playTrack(playlist[currentIndex]); return;
     }
-    
-    stopAll();
-    document.getElementById('player').style.display = 'none';
+    stopAll(); document.getElementById('player').style.display = 'none';
     showStatus('📋 Liste sonu');
 }
 
 function prevTrack() {
     if (searchResults.length > 0 && searchResultIndex > 0) {
-        playResult(searchResultIndex - 1);
-        return;
+        playResult(searchResultIndex - 1); return;
     }
-    
     if (currentIndex > 0) {
-        currentIndex--;
-        playTrack(playlist[currentIndex]);
-        return;
+        currentIndex--; playTrack(playlist[currentIndex]); return;
     }
-    
-    if (currentSource === 'youtube' && ytPlayer) {
-        ytPlayer.seekTo(0); ytPlayer.playVideo();
-    } else if (currentSource === 'local') {
-        localAudio.currentTime = 0; localAudio.play();
-    }
+    if (currentSource === 'youtube' && ytPlayer) { ytPlayer.seekTo(0); ytPlayer.playVideo(); }
+    else if (currentSource === 'local') { localAudio.currentTime = 0; localAudio.play(); }
     showStatus('🔄 Başa sarıldı');
 }
 
@@ -646,8 +569,7 @@ function setVolume(val) {
 function clearPlaylist() {
     if (!playlist.length) return;
     if (confirm('Listeyi temizle?')) {
-        stopAll();
-        playlist = []; currentIndex = -1;
+        stopAll(); playlist = []; currentIndex = -1;
         searchResults = []; searchResultIndex = -1; searchMode = null;
         document.getElementById('player').style.display = 'none';
         savePlaylist(); updateUI();
@@ -657,14 +579,12 @@ function clearPlaylist() {
 function updateUI() {
     const pl = document.getElementById('playlist');
     document.getElementById('count').textContent = playlist.length;
-    
     if (!playlist.length) {
         pl.innerHTML = '<div class="empty-state">🎵 Liste boş</div>';
         document.getElementById('prevBtn').disabled = true;
         document.getElementById('nextBtn').disabled = true;
         return;
     }
-    
     pl.innerHTML = playlist.map((t, i) => `
         <div class="playlist-item${i === currentIndex ? ' active' : ''}" onclick="clickTrack(${i})">
             ${t.thumbnail ? `<img src="${t.thumbnail}" onerror="this.style.display='none'">` : '<div class="result-icon icon">🎵</div>'}
@@ -672,16 +592,11 @@ function updateUI() {
             <button class="btn-remove" onclick="event.stopPropagation();removeTrack(${i})">✕</button>
         </div>
     `).join('');
-    
-    const hasSearchResults = searchResults.length > 0;
     document.getElementById('prevBtn').disabled = (currentIndex <= 0 && searchResultIndex <= 0);
     document.getElementById('nextBtn').disabled = (currentIndex >= playlist.length - 1 && searchResultIndex >= searchResults.length - 1);
 }
 
-function clickTrack(i) {
-    searchResults = []; searchResultIndex = -1; searchMode = null;
-    currentIndex = i; playTrack(playlist[i]);
-}
+function clickTrack(i) { searchResults = []; searchResultIndex = -1; searchMode = null; currentIndex = i; playTrack(playlist[i]); }
 
 function removeTrack(i) {
     event.stopPropagation();
@@ -727,4 +642,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
 document.getElementById('volSlider').value = localStorage.getItem('vol_v16') || 70;
 updateUI();
-console.log('✅ v16.1 hazır');
+console.log('✅ v16.3 hazır');
