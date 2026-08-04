@@ -34,12 +34,50 @@ if (window.YT && YT.Player) onYouTubeIframeAPIReady();
 
 // ============ KLASÖR SEÇME (MOBİL OPTİMİZE) ============
 
+// ============ KLASÖR SEÇME (TÜRKÇE KARAKTER DÜZELTMESİ) ============
+
 function pickFolder() {
     document.getElementById('folderInput').click();
 }
 
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function fixFileName(name) {
+    // URL encode edilmiş karakterleri düzelt
+    let fixed = name;
+    try {
+        fixed = decodeURIComponent(name);
+    } catch(e) {
+        // decode başarısız olursa manuel düzelt
+        fixed = name
+            .replace(/%C4%B1/g, 'ı')
+            .replace(/%C4%B0/g, 'İ')
+            .replace(/%C3%BC/g, 'ü')
+            .replace(/%C3%9C/g, 'Ü')
+            .replace(/%C3%B6/g, 'ö')
+            .replace(/%C3%96/g, 'Ö')
+            .replace(/%C3%A7/g, 'ç')
+            .replace(/%C3%87/g, 'Ç')
+            .replace(/%C5%9F/g, 'ş')
+            .replace(/%C5%9E/g, 'Ş')
+            .replace(/%C4%9F/g, 'ğ')
+            .replace(/%C4%9E/g, 'Ğ')
+            .replace(/%20/g, ' ')
+            .replace(/%2C/g, ',')
+            .replace(/%27/g, "'")
+            .replace(/%26/g, '&')
+            .replace(/%23/g, '#')
+            .replace(/%21/g, '!')
+            .replace(/%28/g, '(')
+            .replace(/%29/g, ')')
+            .replace(/%5B/g, '[')
+            .replace(/%5D/g, ']')
+            .replace(/%2B/g, '+')
+            .replace(/%3D/g, '=');
+    }
+    return fixed;
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -55,9 +93,9 @@ document.addEventListener('DOMContentLoaded', () => {
         showStatus(`📂 ${totalCount} dosya bulundu, filtreleniyor...`);
         await sleep(50);
         
-        // SADECE müzik dosyaları (mp3, m4a, wav, flac, ogg, aac, opus, wma)
+        // SADECE müzik dosyaları
         const musicFiles = allFiles.filter(f => {
-            const name = f.name.toLowerCase();
+            const name = fixFileName(f.name).toLowerCase();
             const ext = name.split('.').pop();
             const validExts = ['mp3', 'm4a', 'wav', 'flac', 'ogg', 'aac', 'opus', 'wma'];
             
@@ -97,9 +135,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const chunk = musicFiles.slice(i, i + chunkSize);
             
             for (const f of chunk) {
+                const fixedName = fixFileName(f.name);
                 localFiles.push({
-                    name: f.name.replace(/\.[^.]+$/, ''),
-                    fullName: f.name,
+                    name: fixedName.replace(/\.[^.]+$/, ''),
+                    fullName: fixedName,
                     size: f.size,
                     type: f.type,
                     file: f
@@ -111,7 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
             await sleep(30);
         }
         
-        const folderName = musicFiles[0].webkitRelativePath?.split('/')[0] || 'Müzik';
+        const folderName = fixFileName(musicFiles[0].webkitRelativePath?.split('/')[0] || 'Müzik');
         
         localStorage.setItem('folderName_v14', folderName);
         
@@ -135,7 +174,6 @@ document.addEventListener('DOMContentLoaded', () => {
         e.target.value = '';
     });
 });
-
 // ============ SESLİ ARAMA (BAS-KONUŞ) ============
 
 let voiceRecognition = null;
