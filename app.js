@@ -1,132 +1,255 @@
-// YT MUSIC v10.0 - Basit, Sade, Çalışan
-console.log('🎵 YT Music v10.0');
+// YT MUSIC v11.0 - YouTube RSS Feed ile Arama
+console.log('🎵 YT Music v11.0 - RSS Arama');
 
 let playlist = [];
 let currentIndex = -1;
 let ytPlayer = null;
 let isPlaying = false;
+let searchResults = [];
+let currentSearchIndex = -1;
 
-// LocalStorage'dan yükle
-try { playlist = JSON.parse(localStorage.getItem('playlist_v10') || '[]'); } catch(e) { playlist = []; }
+// Yükle
+try { playlist = JSON.parse(localStorage.getItem('playlist_v11') || '[]'); } catch(e) { playlist = []; }
 
-// YouTube API hazır olunca
 function onYouTubeIframeAPIReady() {
-    console.log('✅ YouTube API hazır');
+    console.log('✅ API hazır');
     restoreSession();
     updateUI();
 }
 if (window.YT && YT.Player) onYouTubeIframeAPIReady();
 
+// ============ RSS ARAMA ============
+
+async function doSearch() {
+    const query = document.getElementById('searchInput').value.trim();
+    if (!query) return alert('Aramak için bir şey yazın!');
+    
+    const resultsBox = document.getElementById('resultsBox');
+    const resultsList = document.getElementById('resultsList');
+    
+    resultsBox.style.display = 'block';
+    resultsList.innerHTML = '<div class="loading-state"><div class="spinner"></div>Aranıyor...</div>';
+    
+    searchResults = [];
+    currentSearchIndex = -1;
+    
+    try {
+        // YouTube RSS Feed (CORS sorunu olmaz!)
+        const rssUrl = `https://www.youtube.com/feeds/videos.xml?q=${encodeURIComponent(query)}`;
+        const response = await fetch(rssUrl);
+        
+        if (!response.ok) throw new Error('YouTube yanıt vermedi');
+        
+        const xmlText = await response.text();
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+        
+        // Entry'leri al
+        const entries = xmlDoc.querySelectorAll('entry');
+        
+        if (entries.length === 0) {
+            resultsList.innerHTML = '<div class="empty-state"><p>😔 Sonuç bulunamadı</p></div>';
+            document.getElementById('resultCount').textContent = '0';
+            return;
+        }
+        
+        searchResults = Array.from(entries).map(entry => {
+            const videoId = entry.querySelector('yt\\:videoId')?.textContent || 
+                           entry.querySelector('videoId')?.textContent || '';
+            const title = entry.querySelector('title')?.textContent || 'Bilinmeyen';
+            const author = entry.querySelector('author name')?.textContent || 'YouTube';
+            
+            // Thumbnail
+            const mediaGroup = entry.querySelector('media\\:group, group');
+            const thumbnail = mediaGroup?.querySelector('media\\:thumbnail, thumbnail')?.getAttribute('url') ||
+                            `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+            
+            return { videoId, title, author, thumbnail };
+        }).filter(item => item.videoId);
+        
+        document.getElementById('resultCount').textContent = searchResults.length;
+        displayResults();
+        
+    } catch (error) {
+        console.error('RSS hatası:', error);
+        
+        // Fallback: Invidious API dene
+        resultsList.innerHTML = '<div class="loading-state"><div class="spinner"></div>Alternatif yöntem deneniyor...</div>';
+        await tryInvidiousSearch(query);
+    }
+}
+
+async function tryInvidiousSearch(query) {
+    const resultsList = document.getElementById('resultsList');
+    const apis = [
+        'https://inv.nadeko.net/api/v1/search',
+        'https://invidious.snopyta.org/api/v1/search',
+        'https://yewtu.be/api/v1/search'
+    ];
+    
+    for (const api of apis) {
+        try {
+            const resp = await fetch(`${api}?q=${encodeURIComponent(query)}&type=video`, {
+                signal: AbortSignal.timeout(5000)
+            });
+            
+            if (resp.ok) {
+                const data = await resp.json();
+                searchResults = data
+                    .filter(item => item.videoId)
+                    .map(item => ({
+                        videoId: item.videoId,
+                        title: item.title || 'Bilinmeyen',
+                        author: item.author || 'YouTube',
+                        thumbnail: item.videoThumbnails?.[0]?.url || `https://img.youtube.com/vi/${item.videoId}/hqdefault.jpg`
+                    }));
+                
+                document.getElementById('resultCount').textContent = searchResults.length;
+                displayResults();
+                return;
+            }
+        } catch(e) {}
+    }
+    
+    // Tamamen başarısız
+    resultsList.innerHTML = `
+        <div class="empty-state">
+            <p>😔 Arama şu anda çalışmıyor</p>
+            <button onclick="searchOnYouTube()" style="margin-top:15px;background:#ff0000;color:#fff;border:none;padding:10px 20px;border-radius:20px;cursor:pointer;font-size:14px">
+                🔗 YouTube'da Ara
+            </button>
+        </div>`;
+}
+
+function searchOnYouTube() {
+    const query = document.getElementById('searchInput').value.trim();
+    window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(query)}`, '_blank');
+    document.getElementById('resultsBox').style.display = 'none';
+}
+
+function displayResults() {
+    const resultsList = document.getElementById('resultsList');
+    
+    resultsList.innerHTML = searchResults.map((item, i) => `
+        <div class="result-item" id="result-${i}" onclick="playSearchResult(${i})">
+            <img src="${item.thumbnail}" onerror="this.style.display='none'" loading="lazy">
+            <div class="result-info">
+                <strong>${escapeHtml(item.title)}</strong>
+                <small>${escapeHtml(item.author)}</small>
+            </div>
+        </div>
+    `).join('');
+    
+    // İlk sonucu otomatik oynat
+    if (searchResults.length > 0) {
+        setTimeout(() => playSearchResult(0), 500);
+    }
+}
+
+function playSearchResult(index) {
+    if (index < 0 || index >= searchResults.length) return;
+    
+    currentSearchIndex = index;
+    const item = searchResults[index];
+    
+    // UI güncelle
+    document.querySelectorAll('.result-item').forEach((el, i) => {
+        el.classList.toggle('playing', i === index);
+    });
+    
+    // Kaydır
+    document.getElementById(`result-${index}`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    
+    // Track oluştur
+    const track = {
+        id: item.videoId,
+        title: item.title,
+        artist: item.author,
+        thumbnail: item.thumbnail
+    };
+    
+    // Playlist'e ekle
+    const existing = playlist.findIndex(t => t.id === track.id);
+    if (existing >= 0) {
+        currentIndex = existing;
+    } else {
+        playlist.push(track);
+        savePlaylist();
+        currentIndex = playlist.length - 1;
+    }
+    
+    updateUI();
+    playTrack(track);
+}
+
+function closeResults() {
+    document.getElementById('resultsBox').style.display = 'none';
+    searchResults = [];
+    currentSearchIndex = -1;
+}
+
 // ============ LİNK İŞLEMLERİ ============
 
-function playUrl() {
-    const input = document.getElementById('urlInput').value.trim();
-    if (!input) return shakeInput();
+function playFromInput() {
+    const input = document.getElementById('searchInput').value.trim();
+    if (!input) return alert('Link yapıştırın!');
     
-    const videoId = extractVideoId(input);
+    const videoId = extractId(input);
     if (videoId) {
         addAndPlay(videoId);
-        document.getElementById('urlInput').value = '';
+        document.getElementById('searchInput').value = '';
+    } else if (!input.includes('youtube.com')) {
+        doSearch();
     } else {
-        alert('❌ Geçersiz YouTube linki!\n\nÖrnekler:\n• youtube.com/watch?v=VIDEO_ID\n• youtu.be/VIDEO_ID\n• youtube.com/shorts/VIDEO_ID');
-        shakeInput();
+        alert('Geçersiz link!');
     }
 }
 
 async function pasteAndPlay() {
     try {
         const text = await navigator.clipboard.readText();
-        if (!text) return alert('📋 Panoda hiçbir şey yok!');
-        
-        document.getElementById('urlInput').value = text;
-        const videoId = extractVideoId(text);
-        
+        document.getElementById('searchInput').value = text;
+        const videoId = extractId(text);
         if (videoId) {
             addAndPlay(videoId);
-            document.getElementById('urlInput').value = '';
+            document.getElementById('searchInput').value = '';
         } else {
-            alert('📋 Panoda geçerli bir YouTube linki bulunamadı.\n\nYouTube\'a gidip video linkini kopyalayın.');
+            alert('Panoda YouTube linki yok. Arama yapın.');
         }
     } catch(e) {
-        alert('📋 Panoya erişilemedi. Linki manuel yapıştırıp ▶️ tuşuna basın.');
-        document.getElementById('urlInput').focus();
+        alert('Panoya erişilemedi.');
     }
 }
 
-function extractVideoId(input) {
+function extractId(input) {
     if (!input) return null;
-    
-    // Direkt video ID (11 karakter)
     if (/^[a-zA-Z0-9_-]{11}$/.test(input)) return input;
-    
-    // URL'lerden çıkar
     const patterns = [
-        /(?:youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/,
-        /(?:youtu\.be\/)([a-zA-Z0-9_-]{11})/,
-        /(?:youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/,
-        /(?:youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/,
-        /(?:m\.youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/,
-        /(?:music\.youtube\.com\/watch\?v=)([a-zA-Z0-9_-]{11})/,
-        /(?:youtube\.com\/watch\?.*?v=)([a-zA-Z0-9_-]{11})/
+        /youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/,
+        /youtu\.be\/([a-zA-Z0-9_-]{11})/,
+        /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
+        /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/
     ];
-    
     for (const p of patterns) {
         const m = input.match(p);
         if (m) return m[1];
     }
-    
     return null;
 }
 
-// ============ HIZLI ARAMA (YOUTUBE'A YÖNLENDİR) ============
-
-function quickSearch() {
-    const query = document.getElementById('searchInput').value.trim();
-    if (!query) return;
-    
-    // YouTube'da ara (yeni sekme)
-    const searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(query + ' şarkı')}`;
-    window.open(searchUrl, '_blank');
-    
-    // Kullanıcıya bilgi
-    document.getElementById('searchInput').value = '';
-    document.getElementById('urlInput').placeholder = 'Linki buraya yapıştırın...';
-    
-    // Toast mesajı
-    showToast('🔗 YouTube açıldı! Linki kopyalayıp buraya yapıştırın.');
-}
-
-// Enter tuşları
-document.addEventListener('DOMContentLoaded', () => {
-    // URL input - Enter
-    document.getElementById('urlInput').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') playUrl();
-    });
-    
-    // Search input - Enter
-    document.getElementById('searchInput').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') quickSearch();
-    });
-});
-
-// ============ ŞARKI EKLEME VE OYNATMA ============
-
 function addAndPlay(videoId) {
-    // Zaten listede var mı?
-    const existingIndex = playlist.findIndex(t => t.id === videoId);
-    if (existingIndex >= 0) {
-        currentIndex = existingIndex;
-        playTrack(playlist[existingIndex]);
+    const existing = playlist.findIndex(t => t.id === videoId);
+    if (existing >= 0) {
+        currentIndex = existing;
+        playTrack(playlist[existing]);
         return;
     }
     
-    // Yeni şarkı
     const track = {
         id: videoId,
         title: 'Yükleniyor...',
         artist: 'YouTube',
-        thumbnail: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
-        addedAt: Date.now()
+        thumbnail: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
     };
     
     playlist.push(track);
@@ -135,7 +258,7 @@ function addAndPlay(videoId) {
     updateUI();
     playTrack(track);
     
-    // oEmbed ile bilgileri güncelle
+    // oEmbed ile bilgi al
     fetch(`https://www.youtube.com/oembed?url=https://youtube.com/watch?v=${videoId}&format=json`)
         .then(r => r.json())
         .then(data => {
@@ -145,82 +268,52 @@ function addAndPlay(videoId) {
             document.getElementById('artist').textContent = track.artist;
             savePlaylist();
             updateUI();
-        })
-        .catch(() => {
-            // oEmbed çalışmazsa thumbnail'dan anla
-            track.title = `Video: ${videoId}`;
-            document.getElementById('title').textContent = track.title;
-        });
+        }).catch(() => {});
 }
 
+// ============ PLAYER ============
+
 function playTrack(track) {
-    // UI göster
     document.getElementById('player').style.display = 'block';
     document.getElementById('thumbnail').src = track.thumbnail;
     document.getElementById('title').textContent = track.title;
     document.getElementById('artist').textContent = track.artist;
     
-    // Eski player'ı temizle
     destroyPlayer();
-    
-    // Yeni player div'i
     document.getElementById('playerFrame').innerHTML = '<div id="ytplayer"></div>';
     
-    // Player'ı oluştur
     setTimeout(() => {
         try {
             ytPlayer = new YT.Player('ytplayer', {
-                height: '1',
-                width: '1',
+                height: '1', width: '1',
                 videoId: track.id,
                 playerVars: {
-                    autoplay: 1,
-                    controls: 0,
-                    disablekb: 1,
-                    fs: 0,
-                    modestbranding: 1,
-                    playsinline: 1,
-                    rel: 0,
-                    origin: window.location.origin
+                    autoplay: 1, controls: 0, disablekb: 1,
+                    fs: 0, modestbranding: 1, playsinline: 1,
+                    rel: 0, origin: window.location.origin
                 },
                 events: {
                     onReady: (e) => {
-                        const vol = localStorage.getItem('volume_v10') || 70;
-                        e.target.setVolume(vol);
+                        e.target.setVolume(localStorage.getItem('volume_v11') || 70);
                         e.target.unMute();
                         e.target.playVideo();
-                        document.getElementById('playBtn').textContent = '⏸️';
                         isPlaying = true;
+                        document.getElementById('playBtn').textContent = '⏸️';
                     },
                     onStateChange: (e) => {
-                        if (e.data === 0) { // Bitti
-                            nextTrack();
-                        } else if (e.data === 1) { // Oynuyor
-                            isPlaying = true;
-                            document.getElementById('playBtn').textContent = '⏸️';
-                        } else if (e.data === 2) { // Duraklatıldı
-                            isPlaying = false;
-                            document.getElementById('playBtn').textContent = '▶️';
-                        }
+                        if (e.data === 0) nextTrack();
+                        else if (e.data === 1) { isPlaying = true; document.getElementById('playBtn').textContent = '⏸️'; }
+                        else if (e.data === 2) { isPlaying = false; document.getElementById('playBtn').textContent = '▶️'; }
                     },
-                    onError: (e) => {
-                        console.error('Player hatası:', e.data);
-                        showToast('❌ Bu video çalınamadı. Atlanıyor...');
-                        setTimeout(() => nextTrack(), 1500);
-                    }
+                    onError: () => { alert('Video çalınamadı.'); nextTrack(); }
                 }
             });
-        } catch(e) {
-            console.error('Player oluşturma hatası:', e);
-            showToast('❌ Player başlatılamadı');
-        }
+        } catch(e) {}
     }, 100);
     
     updateUI();
     saveSession(track);
-    
-    // Player'a scroll
-    document.getElementById('player').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    document.getElementById('player').scrollIntoView({ behavior: 'smooth' });
 }
 
 function destroyPlayer() {
@@ -232,68 +325,54 @@ function destroyPlayer() {
     document.getElementById('playBtn').textContent = '▶️';
 }
 
-// ============ KONTROLLER ============
-
 function togglePlay() {
     if (!ytPlayer) {
-        if (currentIndex >= 0 && playlist[currentIndex]) {
-            playTrack(playlist[currentIndex]);
-        }
+        if (currentIndex >= 0 && playlist[currentIndex]) playTrack(playlist[currentIndex]);
         return;
     }
-    
     try {
-        const state = ytPlayer.getPlayerState();
-        if (state === 1) {
-            ytPlayer.pauseVideo();
-        } else {
-            ytPlayer.unMute();
-            ytPlayer.playVideo();
-        }
-    } catch(e) {
-        if (currentIndex >= 0 && playlist[currentIndex]) {
-            playTrack(playlist[currentIndex]);
-        }
-    }
+        if (isPlaying) ytPlayer.pauseVideo();
+        else { ytPlayer.unMute(); ytPlayer.playVideo(); }
+    } catch(e) {}
 }
 
 function nextTrack() {
-    if (currentIndex < playlist.length - 1) {
+    if (searchResults.length > 0 && currentSearchIndex < searchResults.length - 1) {
+        playSearchResult(currentSearchIndex + 1);
+    } else if (currentIndex < playlist.length - 1) {
         currentIndex++;
         playTrack(playlist[currentIndex]);
     } else {
         destroyPlayer();
         document.getElementById('player').style.display = 'none';
-        showToast('📋 Çalma listesinin sonuna geldiniz');
     }
 }
 
 function prevTrack() {
-    if (currentIndex > 0) {
+    if (searchResults.length > 0 && currentSearchIndex > 0) {
+        playSearchResult(currentSearchIndex - 1);
+    } else if (currentIndex > 0) {
         currentIndex--;
         playTrack(playlist[currentIndex]);
     }
 }
 
 function setVolume(val) {
-    if (ytPlayer && ytPlayer.setVolume) {
-        ytPlayer.setVolume(val);
-    }
-    localStorage.setItem('volume_v10', val);
+    if (ytPlayer) ytPlayer.setVolume(val);
+    localStorage.setItem('volume_v11', val);
 }
 
 // ============ PLAYLIST ============
 
 function clearPlaylist() {
-    if (playlist.length === 0) return;
-    if (confirm('Çalma listesindeki tüm şarkılar silinecek. Emin misiniz?')) {
+    if (!playlist.length) return;
+    if (confirm('Listeyi temizle?')) {
         destroyPlayer();
         playlist = [];
         currentIndex = -1;
         document.getElementById('player').style.display = 'none';
         savePlaylist();
         updateUI();
-        showToast('🗑 Çalma listesi temizlendi');
     }
 }
 
@@ -301,13 +380,8 @@ function updateUI() {
     const pl = document.getElementById('playlist');
     document.getElementById('count').textContent = playlist.length;
     
-    if (playlist.length === 0) {
-        pl.innerHTML = `
-            <div class="empty-state">
-                <div class="icon">🎵</div>
-                <p>Henüz şarkı eklenmedi</p>
-                <p style="font-size:12px;margin-top:5px">YouTube linki yapıştırarak başlayın</p>
-            </div>`;
+    if (!playlist.length) {
+        pl.innerHTML = '<div class="empty-state"><p>🎵 Liste boş</p></div>';
         document.getElementById('prevBtn').disabled = true;
         document.getElementById('nextBtn').disabled = true;
         return;
@@ -315,216 +389,96 @@ function updateUI() {
     
     pl.innerHTML = playlist.map((t, i) => `
         <div class="playlist-item${i === currentIndex ? ' active' : ''}" onclick="clickTrack(${i})">
-            <img src="${t.thumbnail}" onerror="this.style.display='none'" alt="">
+            <img src="${t.thumbnail}" onerror="this.style.display='none'">
             <div class="info">
                 <strong>${escapeHtml(t.title)}</strong>
                 <small>${escapeHtml(t.artist)}</small>
             </div>
-            <button class="btn-remove" onclick="event.stopPropagation();removeTrack(${i})" title="Kaldır">✕</button>
+            <button class="btn-remove" onclick="event.stopPropagation();removeTrack(${i})">✕</button>
         </div>
     `).join('');
     
-    document.getElementById('prevBtn').disabled = currentIndex <= 0;
-    document.getElementById('nextBtn').disabled = currentIndex >= playlist.length - 1;
+    document.getElementById('prevBtn').disabled = currentIndex <= 0 && currentSearchIndex <= 0;
+    document.getElementById('nextBtn').disabled = currentIndex >= playlist.length - 1 && currentSearchIndex >= searchResults.length - 1;
 }
 
-function clickTrack(index) {
-    currentIndex = index;
-    playTrack(playlist[index]);
-}
+function clickTrack(i) { currentIndex = i; searchResults = []; currentSearchIndex = -1; playTrack(playlist[i]); }
 
-function removeTrack(index) {
+function removeTrack(i) {
     event.stopPropagation();
-    
-    if (currentIndex === index) {
-        destroyPlayer();
-        document.getElementById('player').style.display = 'none';
-        currentIndex = -1;
-    } else if (currentIndex > index) {
-        currentIndex--;
-    }
-    
-    const removed = playlist.splice(index, 1)[0];
+    if (currentIndex === i) { destroyPlayer(); document.getElementById('player').style.display = 'none'; currentIndex = -1; }
+    else if (currentIndex > i) currentIndex--;
+    playlist.splice(i, 1);
     savePlaylist();
     updateUI();
-    showToast(`🗑 "${removed.title}" listeden kaldırıldı`);
 }
 
 // ============ SESLİ ARAMA ============
 
-let recognition = null;
-
-function quickSearch() {
-    const query = document.getElementById('searchInput').value.trim();
-    if (!query) return;
+function startVoice() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) return alert('Sesli arama desteklenmiyor.');
     
-    window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(query + ' şarkı')}`, '_blank');
-    document.getElementById('searchInput').value = '';
-    showToast('🔗 YouTube açıldı! Linki kopyalayıp 📋 tuşuna basın.');
-}
-
-// Mikrofon butonu - artık quickSearch'e bağlı
-document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('micBtn').addEventListener('click', startVoiceSearch);
-});
-
-function startVoiceSearch() {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (window._rec) { window._rec.stop(); window._rec = null; document.getElementById('micBtn').classList.remove('listening'); return; }
     
-    if (!SpeechRecognition) {
-        alert('🎤 Sesli arama tarayıcınızda desteklenmiyor.\n\nChrome tarayıcı kullanın.');
-        return;
-    }
+    const rec = new SR();
+    rec.lang = 'tr-TR';
+    window._rec = rec;
     
-    if (recognition) {
-        recognition.stop();
-        recognition = null;
-        document.getElementById('micBtn').classList.remove('listening');
-        return;
-    }
-    
-    recognition = new SpeechRecognition();
-    recognition.lang = 'tr-TR';
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
-    
-    const micBtn = document.getElementById('micBtn');
-    micBtn.classList.add('listening');
+    document.getElementById('micBtn').classList.add('listening');
     document.getElementById('searchInput').placeholder = '🎤 Dinliyorum...';
     
-    recognition.start();
-    
-    recognition.onresult = (event) => {
-        const text = event.results[0][0].transcript;
+    rec.start();
+    rec.onresult = (e) => {
+        const text = e.results[0][0].transcript;
         document.getElementById('searchInput').value = text;
-        document.getElementById('searchInput').placeholder = 'Şarkı adı yazın...';
-        
-        // Otomatik ara
-        setTimeout(() => quickSearch(), 500);
+        doSearch();
     };
-    
-    recognition.onerror = (event) => {
-        console.error('Ses hatası:', event.error);
-        let msg = 'Hata oluştu';
-        switch(event.error) {
-            case 'no-speech': msg = 'Ses algılanamadı'; break;
-            case 'not-allowed': msg = 'Mikrofon izni verilmedi'; break;
-            case 'network': msg = 'İnternet bağlantısı yok'; break;
-        }
-        showToast('❌ ' + msg);
-    };
-    
-    recognition.onend = () => {
-        micBtn.classList.remove('listening');
-        recognition = null;
-        document.getElementById('searchInput').placeholder = 'Şarkı adı yazın...';
+    rec.onend = () => {
+        document.getElementById('micBtn').classList.remove('listening');
+        document.getElementById('searchInput').placeholder = 'Şarkı veya sanatçı ara...';
+        window._rec = null;
     };
 }
 
 // ============ YARDIMCILAR ============
 
-function showToast(message) {
-    // Basit toast
-    const existing = document.querySelector('.toast');
-    if (existing) existing.remove();
-    
-    const toast = document.createElement('div');
-    toast.className = 'toast';
-    toast.textContent = message;
-    toast.style.cssText = `
-        position: fixed;
-        bottom: 80px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: #ff0000;
-        color: #fff;
-        padding: 12px 24px;
-        border-radius: 25px;
-        font-size: 14px;
-        font-weight: bold;
-        z-index: 9999;
-        animation: toastIn 0.3s ease;
-        white-space: nowrap;
-        box-shadow: 0 5px 20px rgba(255,0,0,0.4);
-    `;
-    
-    document.body.appendChild(toast);
-    
-    setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transition = 'opacity 0.3s';
-        setTimeout(() => toast.remove(), 300);
-    }, 2000);
+function escapeHtml(t) {
+    if (!t) return '';
+    const d = document.createElement('div');
+    d.textContent = t;
+    return d.innerHTML;
 }
 
-function shakeInput() {
-    const input = document.getElementById('urlInput');
-    input.style.animation = 'shake 0.5s ease';
-    input.style.borderColor = '#ff0000';
-    setTimeout(() => {
-        input.style.animation = '';
-        input.style.borderColor = '#333';
-    }, 500);
-}
-
-function escapeHtml(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-function savePlaylist() {
-    try { localStorage.setItem('playlist_v10', JSON.stringify(playlist)); } catch(e) {}
-}
+function savePlaylist() { try { localStorage.setItem('playlist_v11', JSON.stringify(playlist)); } catch(e) {} }
 
 function saveSession(track) {
-    try { 
-        localStorage.setItem('session_v10', JSON.stringify({
-            id: track.id, 
-            index: currentIndex
-        })); 
-    } catch(e) {}
+    try { localStorage.setItem('session_v11', JSON.stringify({id: track.id, index: currentIndex})); } catch(e) {}
 }
 
 function restoreSession() {
     try {
-        const saved = localStorage.getItem('session_v10');
-        if (saved && playlist.length > 0) {
-            const data = JSON.parse(saved);
-            const track = playlist.find(t => t.id === data.id);
-            if (track) {
-                currentIndex = data.index;
-                document.getElementById('player').style.display = 'block';
-                document.getElementById('thumbnail').src = track.thumbnail;
-                document.getElementById('title').textContent = track.title;
-                document.getElementById('artist').textContent = track.artist;
-            }
+        const s = localStorage.getItem('session_v11');
+        if (s && playlist.length) {
+            const d = JSON.parse(s);
+            const t = playlist.find(x => x.id === d.id);
+            if (t) { currentIndex = d.index; document.getElementById('player').style.display = 'block'; document.getElementById('thumbnail').src = t.thumbnail; document.getElementById('title').textContent = t.title; document.getElementById('artist').textContent = t.artist; }
         }
     } catch(e) {}
 }
 
-// ============ BAŞLANGIÇ ============
+// Enter tuşu
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('searchInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            const v = document.getElementById('searchInput').value.trim();
+            if (v.includes('youtube.com') || v.includes('youtu.be')) playFromInput();
+            else if (v) doSearch();
+        }
+    });
+});
 
-// Ses seviyesini ayarla
-const savedVol = localStorage.getItem('volume_v10') || 70;
-document.getElementById('volSlider').value = savedVol;
-
-// CSS animasyonları ekle
-const styleSheet = document.createElement('style');
-styleSheet.textContent = `
-    @keyframes shake {
-        0%, 100% { transform: translateX(0); }
-        25% { transform: translateX(-10px); }
-        50% { transform: translateX(10px); }
-        75% { transform: translateX(-5px); }
-    }
-    @keyframes toastIn {
-        from { opacity: 0; transform: translateX(-50%) translateY(20px); }
-        to { opacity: 1; transform: translateX(-50%) translateY(0); }
-    }
-`;
-document.head.appendChild(styleSheet);
-
+// Başlangıç
+document.getElementById('volSlider').value = localStorage.getItem('volume_v11') || 70;
 updateUI();
-console.log('✅ v10.0 hazır - Basit ve çalışan');
+console.log('✅ v11.0 hazır - RSS Arama');
