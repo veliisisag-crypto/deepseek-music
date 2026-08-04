@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#ff0000">
+    <meta name="description" content="YouTube müziklerini sadece ses olarak dinleyin - Veri tasarruflu PWA">
+    <title>YouTube Müzik - Sadece Ses</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎵</text></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎵</text></svg>">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎵 YouTube Müzik</h1>
+            <p class="subtitle">Sadece Ses • Veri Tasarruflu • API'siz</p>
+        </header>
+
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="Şarkı adı, sanatçı veya YouTube linki yapıştır...">
+            <button id="searchBtn">🔍 Ara</button>
+            <button id="pasteBtn">📋 Yapıştır</button>
+        </div>
+
+        <div class="player-container" id="playerContainer" style="display: none;">
+            <div class="now-playing">
+                <img id="thumbnail" src="" alt="Kapak" class="thumbnail">
+                <div class="song-info">
+                    <h3 id="title">Şarkı seçilmedi</h3>
+                    <p id="artist">Sanatçı bilinmiyor</p>
+                </div>
+            </div>
+
+            <div class="audio-player">
+                <audio id="audioPlayer" controls></audio>
+            </div>
+
+            <div class="controls">
+                <button id="prevBtn" disabled>⏮️</button>
+                <button id="playBtn">▶️</button>
+                <button id="nextBtn" disabled>⏭️</button>
+            </div>
+
+            <div class="volume-control">
+                <span>🔊</span>
+                <input type="range" id="volumeSlider" min="0" max="100" value="70">
+                <span id="volumeValue">70%</span>
+            </div>
+        </div>
+
+        <div class="search-results" id="searchResults"></div>
+        
+        <div class="playlist" id="playlist">
+            <h3>📜 Çalma Listesi <span id="playlistCount">(0)</span></h3>
+            <button id="clearPlaylist" class="clear-btn">🗑️ Listeyi Temizle</button>
+            <ul id="playlistItems"></ul>
+        </div>
+    </div>
+
+    <div class="loading" id="loading" style="display: none;">
+        <div class="spinner"></div>
+        <p id="loadingText">Yükleniyor...</p>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
