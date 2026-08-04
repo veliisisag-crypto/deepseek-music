@@ -6,736 +6,89 @@
     <meta name="theme-color" content="#ff0000">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>YT Müzik v5.2</title>
-    <style>
-        *{margin:0;padding:0;box-sizing:border-box}
-        body{background:#0a0a0a;color:#fff;font-family:Arial,sans-serif;padding:15px;padding-bottom:120px}
-        
-        .version{position:fixed;top:10px;right:10px;background:#ff0000;color:#fff;padding:8px 15px;border-radius:20px;font-weight:bold;font-size:14px;z-index:999;box-shadow:0 2px 10px rgba(255,0,0,0.3)}
-        
-        .container{max-width:500px;margin:0 auto}
-        h1{text-align:center;margin:20px 0;font-size:1.8em}
-        
-        .box{background:#1a1a1a;border-radius:15px;padding:20px;margin:15px 0}
-        
-        /* VERİ MONİTÖRÜ */
-        .data-monitor {
-            background: linear-gradient(135deg, #1a1a1a 0%, #0d3d0d 100%);
-            border: 2px solid #00ff00;
-            border-radius: 15px;
-            padding: 15px;
-            margin: 15px 0;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-        }
-        
-        .data-item {
-            text-align: center;
-            padding: 10px;
-            background: rgba(0,0,0,0.3);
-            border-radius: 10px;
-        }
-        
-        .data-value {
-            font-size: 1.5em;
-            font-weight: bold;
-            color: #00ff00;
-            font-family: monospace;
-        }
-        
-        .data-label {
-            font-size: 0.75em;
-            color: #888;
-            margin-top: 5px;
-        }
-        
-        .savings-badge {
-            background: #00ff00;
-            color: #000;
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-weight: bold;
-            font-size: 0.85em;
-            display: inline-block;
-        }
-        
-        .audio-only {
-            background: rgba(0,255,0,0.2);
-            color: #00ff00;
-            padding: 8px 15px;
-            border-radius: 10px;
-            text-align: center;
-            margin: 10px 0;
-            font-weight: bold;
-            font-size: 0.9em;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-        
-        .pulse {
-            width: 10px;
-            height: 10px;
-            background: #00ff00;
-            border-radius: 50%;
-            animation: pulse 1s infinite;
-        }
-        
-        @keyframes pulse {
-            0% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.5; transform: scale(1.2); }
-            100% { opacity: 1; transform: scale(1); }
-        }
-        
-        input{width:100%;padding:15px;border:2px solid #333;border-radius:10px;background:#111;color:#fff;font-size:16px;margin:10px 0;-webkit-appearance:none}
-        input:focus{outline:none;border-color:#f00}
-        
-        button{width:100%;padding:15px;background:#f00;color:#fff;border:none;border-radius:10px;font-size:18px;font-weight:bold;cursor:pointer;margin:5px 0;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
-        button:hover{opacity:0.9}
-        button:disabled{background:#333;opacity:0.5}
-        button:active{transform:scale(0.98)}
-        
-        .btn-sm{width:auto;padding:12px 20px;font-size:14px;display:inline-block}
-        
-        #status{text-align:center;color:#888;padding:10px;font-size:14px}
-        #player{display:none}
-        #thumbnail{width:100%;border-radius:10px;margin:10px 0;max-height:200px;object-fit:cover;background:#333}
-        #title{font-size:1.2em;margin:10px 0;word-break:break-word}
-        #artist{color:#888}
-        
-        .controls{display:flex;gap:10px;justify-content:center;margin:15px 0}
-        .controls button{width:60px;height:60px;border-radius:50%;padding:0;font-size:24px}
-        .big-play-btn{width:80px!important;height:80px!important;font-size:32px!important;box-shadow:0 0 30px rgba(255,0,0,0.5)}
-        
-        .playlist-item{display:flex;justify-content:space-between;align-items:center;padding:12px;background:#222;border-radius:8px;margin:5px 0;cursor:pointer}
-        .playlist-item.active{background:linear-gradient(45deg, #cc0000, #ff0000)}
-        
-        #playerFrame{position:fixed;bottom:-9999px;right:-9999px;width:1px;height:1px;opacity:0;pointer-events:none}
-        
-        .session-info {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.8em;
-            color: #666;
-            margin-top: 10px;
-        }
-    </style>
+    <title>YT Müzik v6.0</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
 </head>
 <body>
-    <div class="version">🎵 v5.2</div>
-    
+    <!-- ÜST BAR -->
+    <div class="top-bar">
+        <span class="version">🎵 v6.0</span>
+        <a href="stats.html" class="stats-link">📊 İstatistikler</a>
+    </div>
+
     <div class="container">
-        <h1>🎵 YouTube Müzik</h1>
-        <p style="text-align:center;color:#888;margin-bottom:20px">Sadece Ses • Veri Tasarruflu • Mobil</p>
-        
-        <!-- VERİ KULLANIMI MONİTÖRÜ -->
-        <div class="data-monitor" id="dataMonitor">
-            <div class="data-item">
-                <div class="data-value" id="dataUsed">0 MB</div>
-                <div class="data-label">📊 Kullanılan Veri</div>
+        <header>
+            <h1>🎵 YouTube Müzik</h1>
+            <p class="subtitle">Sadece Ses • %94 Veri Tasarrufu</p>
+        </header>
+
+        <!-- VERİ ÖZETİ (Mini) -->
+        <div class="data-mini" id="dataMini">
+            <div class="mini-item">
+                <span class="mini-value" id="miniData">0 MB</span>
+                <span class="mini-label">Kullanılan</span>
             </div>
-            <div class="data-item">
-                <div class="data-value" id="dataSaved">0 MB</div>
-                <div class="data-label">💰 Tasarruf Edilen</div>
+            <div class="mini-item">
+                <span class="mini-value" id="miniSaved">0 MB</span>
+                <span class="mini-label">Tasarruf</span>
             </div>
-            <div class="data-item">
-                <div class="data-value" id="audioBitrate">-- kbps</div>
-                <div class="data-label">🎵 Ses Kalitesi</div>
-            </div>
-            <div class="data-item">
-                <div class="data-value"><span class="savings-badge" id="savingsPercent">%0</span></div>
-                <div class="data-label">📉 Tasarruf Oranı</div>
+            <div class="mini-item">
+                <span class="mini-value savings-badge" id="miniPercent">%0</span>
+                <span class="mini-label">Tasarruf</span>
             </div>
         </div>
-        
-        <!-- SES DURUMU -->
-        <div class="audio-only">
-            <div class="pulse"></div>
-            <span>🔊 SADECE SES AKTİF</span>
-            <span style="font-size:0.8em">(Video: 1x1 pixel)</span>
-        </div>
-        
+
         <!-- GİRİŞ -->
         <div class="box">
-            <p style="margin-bottom:10px"><strong>📋 YouTube Linki Yapıştır:</strong></p>
+            <label for="urlInput"><strong>📋 YouTube Linki:</strong></label>
             <input type="text" id="urlInput" placeholder="youtube.com/watch?v=... veya video ID" autocomplete="off">
-            <button onclick="playUrl()">▶️ OYNAT</button>
-            <button class="btn-sm" onclick="pasteUrl()" style="background:#333">📋 Panodan Yapıştır</button>
+            <button onclick="playUrl()" class="btn-primary">▶️ OYNAT</button>
+            <button onclick="pasteUrl()" class="btn-secondary">📋 Panodan Yapıştır</button>
         </div>
 
         <!-- PLAYER -->
-        <div id="player" class="box">
-            <img id="thumbnail" src="" alt="Video Kapağı">
+        <div id="player" class="box" style="display:none">
+            <img id="thumbnail" src="" alt="Kapak">
             <h3 id="title">-</h3>
             <p id="artist">-</p>
             
             <div class="controls">
                 <button onclick="prevTrack()" id="prevBtn" disabled>⏮️</button>
-                <button onclick="togglePlay()" id="playBtn" class="big-play-btn">▶️</button>
+                <button onclick="togglePlay()" id="playBtn" class="play-btn">▶️</button>
                 <button onclick="nextTrack()" id="nextBtn" disabled>⏭️</button>
             </div>
             
-            <div style="display:flex;align-items:center;gap:10px;margin:10px 0">
+            <div class="volume-row">
                 <span>🔈</span>
-                <input type="range" id="volSlider" min="0" max="100" value="70" style="flex:1" oninput="setVolume(this.value)">
+                <input type="range" id="volSlider" min="0" max="100" value="70" oninput="setVolume(this.value)">
                 <span>🔊</span>
                 <span id="volText">70%</span>
             </div>
             
-            <p id="status">Hazır</p>
+            <div class="audio-indicator">
+                <span class="pulse"></span>
+                🔊 SADECE SES AKTİF (1x1 pixel video)
+            </div>
             
-            <div class="session-info">
+            <p id="status" class="status-text">Hazır</p>
+            <div class="track-info">
                 <span>🕐 <span id="playTime">00:00</span></span>
-                <span>🔢 Parça: <span id="trackNum">0/0</span></span>
+                <span>🔢 <span id="trackNum">0/0</span></span>
             </div>
         </div>
 
         <!-- PLAYLIST -->
         <div class="box">
-            <h3 style="margin-bottom:10px">📜 Çalma Listesi (<span id="count">0</span>)</h3>
+            <h3>📜 Çalma Listesi (<span id="count">0</span>)</h3>
             <div id="playlist"></div>
-            <button onclick="clearPlaylist()" style="background:#333;margin-top:10px">🗑️ Listeyi Temizle</button>
+            <button onclick="clearPlaylist()" class="btn-secondary" style="margin-top:10px">🗑️ Listeyi Temizle</button>
         </div>
     </div>
 
     <div id="playerFrame"><div id="ytplayer"></div></div>
-
+    
     <script src="https://www.youtube.com/iframe_api"></script>
-    <script>
-        // ============ YT MUSIC v5.2 - VERİ MONİTÖRLÜ ============
-        console.log('🎵 YT Music v5.2 - Veri Monitörlü');
-        
-        let playlist = [];
-        let currentIndex = -1;
-        let ytPlayer = null;
-        let isPlaying = false;
-        let currentTrack = null;
-        
-        // Veri takip değişkenleri
-        let dataUsed = 0; // MB cinsinden
-        let startTime = null;
-        let playTimer = null;
-        let secondsPlayed = 0;
-        
-        // Ortalama ses bitrate'i (YouTube audio-only yaklaşık 128-160 kbps)
-        const AUDIO_BITRATE = 140; // kbps
-        const VIDEO_BITRATE = 2500; // kbps (1080p yaklaşık)
-        
-        // LocalStorage'dan yükle
-        try {
-            const saved = localStorage.getItem('playlist_v52');
-            if (saved) playlist = JSON.parse(saved);
-            
-            // Toplam veri kullanımını yükle
-            const savedData = localStorage.getItem('totalDataUsed_v52');
-            if (savedData) dataUsed = parseFloat(savedData);
-            
-            // Süre sayacını yükle
-            const savedSeconds = localStorage.getItem('totalSeconds_v52');
-            if (savedSeconds) secondsPlayed = parseInt(savedSeconds);
-        } catch(e) {
-            playlist = [];
-            dataUsed = 0;
-            secondsPlayed = 0;
-        }
-
-        function onYouTubeIframeAPIReady() {
-            console.log('✅ YouTube API hazır');
-            restoreLastSession();
-            updateUI();
-            updateDataMonitor();
-        }
-
-        if (window.YT && YT.Player) {
-            onYouTubeIframeAPIReady();
-        }
-
-        function playUrl() {
-            const input = document.getElementById('urlInput');
-            const url = input.value.trim();
-            
-            if (!url) {
-                showMessage('Lütfen bir YouTube linki yapıştırın!');
-                return;
-            }
-
-            const videoId = extractId(url);
-            
-            if (!videoId) {
-                showMessage('❌ Geçersiz link!\n\nÖrnek: youtube.com/watch?v=VIDEO_ID\nveya direkt: VIDEO_ID');
-                return;
-            }
-
-            console.log('✅ Video ID:', videoId);
-            addTrack(videoId);
-            input.value = '';
-        }
-
-        async function pasteUrl() {
-            try {
-                const text = await navigator.clipboard.readText();
-                document.getElementById('urlInput').value = text;
-                
-                const videoId = extractId(text);
-                if (videoId) {
-                    addTrack(videoId);
-                } else {
-                    showMessage('Panoda geçerli bir YouTube linki yok.');
-                }
-            } catch (e) {
-                showMessage('📋 Panodan yapıştırılamadı.\nManuel olarak yapıştırın.');
-                document.getElementById('urlInput').focus();
-            }
-        }
-
-        function extractId(input) {
-            if (!input) return null;
-            if (/^[a-zA-Z0-9_-]{11}$/.test(input)) return input;
-            
-            const patterns = [
-                /youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/,
-                /youtu\.be\/([a-zA-Z0-9_-]{11})/,
-                /youtube\.com\/embed\/([a-zA-Z0-9_-]{11})/,
-                /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/,
-                /m\.youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/,
-                /music\.youtube\.com\/watch\?v=([a-zA-Z0-9_-]{11})/
-            ];
-            
-            for (const p of patterns) {
-                const m = input.match(p);
-                if (m) return m[1];
-            }
-            return null;
-        }
-
-        function addTrack(videoId) {
-            const existing = playlist.findIndex(t => t.id === videoId);
-            if (existing >= 0) {
-                currentIndex = existing;
-                playTrack(playlist[existing]);
-                return;
-            }
-
-            const track = {
-                id: videoId,
-                title: 'Yükleniyor...',
-                artist: 'YouTube',
-                thumbnail: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
-                addedAt: Date.now()
-            };
-
-            playlist.push(track);
-            savePlaylist();
-            updateUI();
-            
-            currentIndex = playlist.length - 1;
-            playTrack(track);
-        }
-
-        function playTrack(track) {
-            currentTrack = track;
-            updateStatus('Yükleniyor...');
-            
-            // Süre sayacını başlat
-            startPlayTimer();
-            
-            document.getElementById('player').style.display = 'block';
-            document.getElementById('thumbnail').src = track.thumbnail;
-            document.getElementById('title').textContent = track.title;
-            document.getElementById('artist').textContent = track.artist;
-
-            destroyPlayer();
-            document.getElementById('playerFrame').innerHTML = '<div id="ytplayer"></div>';
-
-            const initPlayer = () => {
-                try {
-                    ytPlayer = new YT.Player('ytplayer', {
-                        height: '1',
-                        width: '1',
-                        videoId: track.id,
-                        playerVars: {
-                            autoplay: 1,
-                            controls: 0,
-                            disablekb: 1,
-                            fs: 0,
-                            modestbranding: 1,
-                            playsinline: 1,
-                            rel: 0,
-                            origin: window.location.origin,
-                            enablejsapi: 1
-                        },
-                        events: {
-                            onReady: onPlayerReady,
-                            onStateChange: onPlayerStateChange,
-                            onError: onPlayerError
-                        }
-                    });
-                } catch(e) {
-                    console.error('Player oluşturma hatası:', e);
-                    updateStatus('❌ Player hatası');
-                }
-            };
-
-            setTimeout(initPlayer, 100);
-            updateUI();
-            saveLastTrack(track);
-            updateDataMonitor();
-        }
-
-        function onPlayerReady(event) {
-            console.log('✅ Player hazır');
-            event.target.setVolume(document.getElementById('volSlider').value);
-            event.target.unMute();
-            event.target.playVideo();
-            
-            updateStatus('▶️ Oynatılıyor');
-            
-            setTimeout(() => {
-                try {
-                    const data = event.target.getVideoData();
-                    if (data && data.title && currentTrack) {
-                        currentTrack.title = data.title;
-                        currentTrack.artist = data.author || 'YouTube';
-                        document.getElementById('title').textContent = currentTrack.title;
-                        document.getElementById('artist').textContent = currentTrack.artist;
-                        savePlaylist();
-                        updateUI();
-                    }
-                } catch(e) {}
-            }, 2000);
-        }
-
-        function onPlayerStateChange(event) {
-            switch(event.data) {
-                case 0: // ENDED
-                    updateStatus('⏹️ Bitti');
-                    stopPlayTimer();
-                    nextTrack();
-                    break;
-                case 1: // PLAYING
-                    isPlaying = true;
-                    document.getElementById('playBtn').textContent = '⏸️';
-                    updateStatus('▶️ Oynatılıyor');
-                    startPlayTimer();
-                    break;
-                case 2: // PAUSED
-                    isPlaying = false;
-                    document.getElementById('playBtn').textContent = '▶️';
-                    updateStatus('⏸️ Duraklatıldı');
-                    stopPlayTimer();
-                    break;
-                case 3: // BUFFERING
-                    updateStatus('🔄 Yükleniyor...');
-                    break;
-            }
-        }
-
-        function onPlayerError(event) {
-            console.error('❌ Player hatası:', event.data);
-            stopPlayTimer();
-            
-            let msg = 'Video çalınamadı. ';
-            switch(event.data) {
-                case 2: msg += 'Geçersiz ID'; break;
-                case 5: msg += 'HTML5 hatası'; break;
-                case 100: msg += 'Video bulunamadı'; break;
-                case 101: case 150: msg += 'Embed izni yok (telif hakkı)'; break;
-                default: msg += 'Bilinmeyen hata: ' + event.data;
-            }
-            
-            updateStatus('❌ ' + msg);
-            alert(msg + '\n\nBaşka bir video deneyin.');
-            setTimeout(() => nextTrack(), 3000);
-        }
-
-        function destroyPlayer() {
-            stopPlayTimer();
-            if (ytPlayer) {
-                try {
-                    ytPlayer.stopVideo();
-                    ytPlayer.destroy();
-                } catch(e) {}
-                ytPlayer = null;
-            }
-            isPlaying = false;
-            document.getElementById('playBtn').textContent = '▶️';
-        }
-
-        // ============ VERİ TAKİP ============
-        
-        function startPlayTimer() {
-            stopPlayTimer();
-            startTime = Date.now();
-            playTimer = setInterval(updateDataUsage, 1000); // Her saniye güncelle
-        }
-        
-        function stopPlayTimer() {
-            if (playTimer) {
-                clearInterval(playTimer);
-                playTimer = null;
-                
-                // Geçen süreyi hesapla
-                if (startTime) {
-                    const elapsed = (Date.now() - startTime) / 1000;
-                    secondsPlayed += elapsed;
-                    saveTotalSeconds();
-                }
-                startTime = null;
-            }
-        }
-        
-        function updateDataUsage() {
-            if (!startTime || !isPlaying) return;
-            
-            // Geçen süre (saniye)
-            const elapsedSeconds = (Date.now() - startTime) / 1000;
-            const totalSeconds = secondsPlayed + elapsedSeconds;
-            
-            // Veri kullanımı hesapla
-            // Formül: bitrate (kbps) * süre (saniye) / 8 / 1024 = MB
-            const currentDataMB = (AUDIO_BITRATE * totalSeconds) / 8 / 1024;
-            const videoDataMB = (VIDEO_BITRATE * totalSeconds) / 8 / 1024;
-            const savedDataMB = videoDataMB - currentDataMB;
-            const savingsPercent = videoDataMB > 0 ? ((savedDataMB / videoDataMB) * 100).toFixed(0) : 0;
-            
-            // Toplam veriyi güncelle
-            dataUsed = currentDataMB;
-            
-            // UI güncelle
-            document.getElementById('dataUsed').textContent = formatMB(currentDataMB);
-            document.getElementById('dataSaved').textContent = formatMB(savedDataMB);
-            document.getElementById('audioBitrate').textContent = AUDIO_BITRATE + ' kbps';
-            document.getElementById('savingsPercent').textContent = '%' + savingsPercent;
-            
-            // Süre göstergesi
-            document.getElementById('playTime').textContent = formatTime(totalSeconds);
-            document.getElementById('trackNum').textContent = `${currentIndex + 1}/${playlist.length}`;
-            
-            // Her 10 saniyede bir kaydet
-            if (Math.floor(totalSeconds) % 10 === 0) {
-                saveTotalData();
-                saveTotalSeconds();
-            }
-        }
-        
-        function updateDataMonitor() {
-            const totalSeconds = secondsPlayed;
-            const currentDataMB = (AUDIO_BITRATE * totalSeconds) / 8 / 1024;
-            const videoDataMB = (VIDEO_BITRATE * totalSeconds) / 8 / 1024;
-            const savedDataMB = videoDataMB - currentDataMB;
-            const savingsPercent = videoDataMB > 0 ? ((savedDataMB / videoDataMB) * 100).toFixed(0) : 0;
-            
-            document.getElementById('dataUsed').textContent = formatMB(currentDataMB);
-            document.getElementById('dataSaved').textContent = formatMB(savedDataMB);
-            document.getElementById('audioBitrate').textContent = AUDIO_BITRATE + ' kbps';
-            document.getElementById('savingsPercent').textContent = '%' + savingsPercent;
-            document.getElementById('playTime').textContent = formatTime(totalSeconds);
-        }
-        
-        function formatMB(mb) {
-            if (mb < 0.01) return '0 MB';
-            if (mb < 1) return mb.toFixed(2) + ' MB';
-            if (mb < 1024) return mb.toFixed(1) + ' MB';
-            return (mb / 1024).toFixed(2) + ' GB';
-        }
-        
-        function formatTime(seconds) {
-            const h = Math.floor(seconds / 3600);
-            const m = Math.floor((seconds % 3600) / 60);
-            const s = Math.floor(seconds % 60);
-            
-            if (h > 0) {
-                return `${h}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
-            }
-            return `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
-        }
-
-        function togglePlay() {
-            if (!ytPlayer) {
-                if (currentIndex >= 0 && playlist[currentIndex]) {
-                    playTrack(playlist[currentIndex]);
-                }
-                return;
-            }
-
-            try {
-                const state = ytPlayer.getPlayerState();
-                if (state === 1) {
-                    ytPlayer.pauseVideo();
-                } else {
-                    ytPlayer.unMute();
-                    ytPlayer.playVideo();
-                }
-            } catch(e) {
-                if (currentTrack) playTrack(currentTrack);
-            }
-        }
-
-        function nextTrack() {
-            if (currentIndex < playlist.length - 1) {
-                currentIndex++;
-                playTrack(playlist[currentIndex]);
-            } else {
-                destroyPlayer();
-                document.getElementById('player').style.display = 'none';
-                updateStatus('📋 Liste sonu');
-            }
-        }
-
-        function prevTrack() {
-            if (currentIndex > 0) {
-                currentIndex--;
-                playTrack(playlist[currentIndex]);
-            }
-        }
-
-        function setVolume(val) {
-            if (ytPlayer && ytPlayer.setVolume) {
-                ytPlayer.setVolume(val);
-            }
-            document.getElementById('volText').textContent = val + '%';
-            try {
-                localStorage.setItem('volume_v52', val);
-            } catch(e) {}
-        }
-
-        function clearPlaylist() {
-            if (playlist.length === 0) return;
-            if (confirm('Listeyi temizle?')) {
-                destroyPlayer();
-                playlist = [];
-                currentIndex = -1;
-                currentTrack = null;
-                document.getElementById('player').style.display = 'none';
-                savePlaylist();
-                updateUI();
-            }
-        }
-
-        function updateUI() {
-            const pl = document.getElementById('playlist');
-            document.getElementById('count').textContent = playlist.length;
-            
-            if (playlist.length === 0) {
-                pl.innerHTML = '<p style="text-align:center;color:#888;padding:20px">Liste boş</p>';
-            } else {
-                pl.innerHTML = playlist.map((t, i) => `
-                    <div class="playlist-item${i === currentIndex ? ' active' : ''}" onclick="clickTrack(${i})">
-                        <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
-                            <img src="${t.thumbnail}" width="40" height="40" style="border-radius:5px;background:#333" onerror="this.style.display='none'">
-                            <div style="min-width:0">
-                                <strong style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px">${t.title}</strong>
-                                <small style="color:#aaa;font-size:11px">${t.artist}</small>
-                            </div>
-                        </div>
-                        <button onclick="removeTrack(event, ${i})" style="width:30px;height:30px;padding:0;font-size:14px;background:none;color:#f44;border:1px solid #f44;border-radius:50%;min-width:30px">✕</button>
-                    </div>
-                `).join('');
-            }
-
-            document.getElementById('prevBtn').disabled = currentIndex <= 0;
-            document.getElementById('nextBtn').disabled = currentIndex >= playlist.length - 1;
-        }
-
-        function clickTrack(index) {
-            currentIndex = index;
-            playTrack(playlist[index]);
-        }
-
-        function removeTrack(event, index) {
-            event.stopPropagation();
-            
-            if (currentIndex === index) {
-                destroyPlayer();
-                document.getElementById('player').style.display = 'none';
-                currentIndex = -1;
-                currentTrack = null;
-            } else if (currentIndex > index) {
-                currentIndex--;
-            }
-            
-            playlist.splice(index, 1);
-            savePlaylist();
-            updateUI();
-        }
-
-        function savePlaylist() {
-            try {
-                localStorage.setItem('playlist_v52', JSON.stringify(playlist));
-            } catch(e) {}
-        }
-        
-        function saveTotalData() {
-            try {
-                localStorage.setItem('totalDataUsed_v52', dataUsed.toString());
-            } catch(e) {}
-        }
-        
-        function saveTotalSeconds() {
-            try {
-                localStorage.setItem('totalSeconds_v52', Math.floor(secondsPlayed).toString());
-            } catch(e) {}
-        }
-
-        function saveLastTrack(track) {
-            try {
-                localStorage.setItem('last_v52', JSON.stringify({
-                    id: track.id, 
-                    index: currentIndex
-                }));
-            } catch(e) {}
-        }
-
-        function restoreLastSession() {
-            try {
-                const saved = localStorage.getItem('last_v52');
-                if (saved && playlist.length > 0) {
-                    const data = JSON.parse(saved);
-                    const track = playlist.find(t => t.id === data.id);
-                    if (track) {
-                        currentIndex = data.index;
-                        currentTrack = track;
-                        document.getElementById('player').style.display = 'block';
-                        document.getElementById('thumbnail').src = track.thumbnail;
-                        document.getElementById('title').textContent = track.title;
-                        document.getElementById('artist').textContent = track.artist;
-                        updateStatus('🔄 Son oturum');
-                    }
-                }
-            } catch(e) {}
-        }
-
-        function updateStatus(msg) {
-            document.getElementById('status').textContent = msg;
-        }
-
-        function showMessage(msg) {
-            alert(msg);
-        }
-
-        // Başlangıç
-        try {
-            const vol = localStorage.getItem('volume_v52') || 70;
-            document.getElementById('volSlider').value = vol;
-            document.getElementById('volText').textContent = vol + '%';
-        } catch(e) {}
-
-        updateUI();
-        updateDataMonitor();
-        
-        // Sayfa kapanırken veriyi kaydet
-        window.addEventListener('beforeunload', () => {
-            stopPlayTimer();
-            saveTotalData();
-            saveTotalSeconds();
-        });
-        
-        console.log('✅ v5.2 hazır - Veri monitörü aktif');
-        console.log('📊 Ses bitrate:', AUDIO_BITRATE, 'kbps');
-        console.log('💰 Video olsaydı:', VIDEO_BITRATE, 'kbps');
-        console.log('📉 Tasarruf oranı: ~%94');
-    </script>
+    <script src="app.js"></script>
 </body>
 </html>
