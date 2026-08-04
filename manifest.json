@@ -1,20 +1,20 @@
 {
-    "name": "YouTube Müzik PWA",
+    "name": "YouTube Müzik",
     "short_name": "YT Müzik",
     "description": "YouTube müziklerini sadece ses olarak dinleyin",
     "start_url": "/",
     "display": "standalone",
-    "background_color": "#0f0f0f",
+    "background_color": "#0a0a0a",
     "theme_color": "#ff0000",
     "orientation": "any",
     "icons": [
         {
-            "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎵</text></svg>",
+            "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%23ff0000' width='100' height='100' rx='20'/><text y='.75em' font-size='60' text-anchor='middle' x='50'>🎵</text></svg>",
             "sizes": "192x192",
             "type": "image/svg+xml",
             "purpose": "any maskable"
         }
     ],
-    "categories": ["music", "entertainment"],
+    "categories": ["music"],
     "lang": "tr-TR"
 }
