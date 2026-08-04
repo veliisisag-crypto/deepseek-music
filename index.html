@@ -6,49 +6,34 @@
     <meta name="theme-color" content="#ff0000">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>YT Müzik v6.0</title>
+    <title>YT Müzik v7.0</title>
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
 </head>
 <body>
     <!-- ÜST BAR -->
     <div class="top-bar">
-        <span class="version">🎵 v6.0</span>
-        <a href="stats.html" class="stats-link">📊 İstatistikler</a>
+        <span class="version">🎵 v7.0</span>
+        <span class="top-title">YouTube Müzik</span>
     </div>
 
     <div class="container">
-        <header>
-            <h1>🎵 YouTube Müzik</h1>
-            <p class="subtitle">Sadece Ses • %94 Veri Tasarrufu</p>
-        </header>
-
-        <!-- VERİ ÖZETİ (Mini) -->
-        <div class="data-mini" id="dataMini">
-            <div class="mini-item">
-                <span class="mini-value" id="miniData">0 MB</span>
-                <span class="mini-label">Kullanılan</span>
+        <!-- ARAMA KUTUSU -->
+        <div class="search-box">
+            <div class="search-row">
+                <input type="text" id="urlInput" placeholder="Şarkı ara veya link yapıştır..." autocomplete="off">
+                <button onclick="searchYouTube()" class="search-btn" title="YouTube'da Ara">🔍</button>
+                <button onclick="startVoiceSearch()" class="mic-btn" id="micBtn" title="Sesli Ara">🎤</button>
             </div>
-            <div class="mini-item">
-                <span class="mini-value" id="miniSaved">0 MB</span>
-                <span class="mini-label">Tasarruf</span>
+            <div class="action-buttons">
+                <button onclick="pasteAndPlay()" class="btn-paste">📋 Yapıştır ve Oynat</button>
+                <button onclick="playUrl()" class="btn-play">▶️ Oynat</button>
             </div>
-            <div class="mini-item">
-                <span class="mini-value savings-badge" id="miniPercent">%0</span>
-                <span class="mini-label">Tasarruf</span>
-            </div>
-        </div>
-
-        <!-- GİRİŞ -->
-        <div class="box">
-            <label for="urlInput"><strong>📋 YouTube Linki:</strong></label>
-            <input type="text" id="urlInput" placeholder="youtube.com/watch?v=... veya video ID" autocomplete="off">
-            <button onclick="playUrl()" class="btn-primary">▶️ OYNAT</button>
-            <button onclick="pasteUrl()" class="btn-secondary">📋 Panodan Yapıştır</button>
+            <div id="voiceStatus" class="voice-status"></div>
         </div>
 
         <!-- PLAYER -->
-        <div id="player" class="box" style="display:none">
+        <div id="player" class="player-box" style="display:none">
             <img id="thumbnail" src="" alt="Kapak">
             <h3 id="title">-</h3>
             <p id="artist">-</p>
@@ -63,31 +48,25 @@
                 <span>🔈</span>
                 <input type="range" id="volSlider" min="0" max="100" value="70" oninput="setVolume(this.value)">
                 <span>🔊</span>
-                <span id="volText">70%</span>
-            </div>
-            
-            <div class="audio-indicator">
-                <span class="pulse"></span>
-                🔊 SADECE SES AKTİF (1x1 pixel video)
-            </div>
-            
-            <p id="status" class="status-text">Hazır</p>
-            <div class="track-info">
-                <span>🕐 <span id="playTime">00:00</span></span>
-                <span>🔢 <span id="trackNum">0/0</span></span>
             </div>
         </div>
 
         <!-- PLAYLIST -->
-        <div class="box">
-            <h3>📜 Çalma Listesi (<span id="count">0</span>)</h3>
+        <div class="playlist-box">
+            <div class="playlist-header">
+                <h3>📜 Çalma Listesi (<span id="count">0</span>)</h3>
+                <button onclick="clearPlaylist()" class="btn-clear">Temizle</button>
+            </div>
             <div id="playlist"></div>
-            <button onclick="clearPlaylist()" class="btn-secondary" style="margin-top:10px">🗑️ Listeyi Temizle</button>
         </div>
     </div>
 
+    <!-- Gizli YouTube Player -->
     <div id="playerFrame"><div id="ytplayer"></div></div>
     
+    <!-- Gizli audio (mikrofon için) -->
+    <audio id="audioFeedback" style="display:none"></audio>
+
     <script src="https://www.youtube.com/iframe_api"></script>
     <script src="app.js"></script>
 </body>
