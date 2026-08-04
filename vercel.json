@@ -1,11 +1,5 @@
 {
-    "version": 2,
-    "headers": [
-        {
-            "source": "/(.*)",
-            "headers": [
-                { "key": "Access-Control-Allow-Origin", "value": "*" }
-            ]
-        }
-    ]
+  "version": 2,
+  "buildCommand": "",
+  "framework": null
 }
