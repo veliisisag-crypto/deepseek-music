@@ -1,5 +1,5 @@
-// YT MUSIC v16.0 - Temiz İsimler + Arama Gezinme + Seek Bar
-console.log('🎵 YT Music v16.0');
+// YT MUSIC v16.1 - Yerel Dosya Çalma Düzeltmesi
+console.log('🎵 YT Music v16.1');
 
 let playlist = [];
 let currentIndex = -1;
@@ -10,12 +10,13 @@ let currentSource = null;
 let searchResults = [];
 let searchResultIndex = -1;
 let localFiles = [];
-let searchMode = null; // 'youtube' | 'local' | null
+let searchMode = null;
+let seekInterval = null;
 
 // ============ INDEXEDDB ============
 
-const DB_NAME = 'ytmusic_db';
-const DB_VERSION = 2;
+const DB_NAME = 'ytmusic_db_v2';
+const DB_VERSION = 1;
 const STORE_NAME = 'music_files';
 
 function openDB() {
@@ -39,10 +40,9 @@ async function saveFilesToDB(files) {
         const store = tx.objectStore(STORE_NAME);
         store.clear();
         for (let i = 0; i < files.length; i++) {
-            const f = files[i];
-            store.put({ id: i, name: f.name, fullName: f.fullName, size: f.size, type: f.type, lastModified: f.file?.lastModified || Date.now() });
+            store.put({ id: i, name: files[i].name, fullName: files[i].fullName, size: files[i].size, type: files[i].type });
         }
-        return new Promise((resolve) => { tx.oncomplete = () => resolve(true); tx.onerror = () => resolve(false); });
+        return new Promise(resolve => { tx.oncomplete = () => resolve(true); tx.onerror = () => resolve(false); });
     } catch(e) { return false; }
 }
 
@@ -51,10 +51,10 @@ async function loadFilesFromDB() {
         const db = await openDB();
         const tx = db.transaction(STORE_NAME, 'readonly');
         const store = tx.objectStore(STORE_NAME);
-        const request = store.getAll();
-        return new Promise((resolve) => {
-            request.onsuccess = () => resolve(request.result.map(item => ({ name: item.name, fullName: item.fullName, size: item.size, type: item.type, file: null })));
-            request.onerror = () => resolve([]);
+        return new Promise(resolve => {
+            const req = store.getAll();
+            req.onsuccess = () => resolve(req.result.map(item => ({ name: item.name, fullName: item.fullName, size: item.size, type: item.type, file: null })));
+            req.onerror = () => resolve([]);
         });
     } catch(e) { return []; }
 }
@@ -66,9 +66,11 @@ try { playlist = JSON.parse(localStorage.getItem('playlist_v16') || '[]'); } cat
 loadFilesFromDB().then(files => {
     if (files.length > 0) {
         localFiles = files;
-        document.getElementById('folderInfo').textContent = `Kayıtlı (${files.length} şarkı)`;
-        document.getElementById('folderBtn').style.borderColor = '#00ff00';
-        document.getElementById('folderBtn').style.color = '#00ff00';
+        const info = document.getElementById('folderInfo');
+        if (info) info.textContent = `Kayıtlı (${files.length} şarkı)`;
+        const btn = document.getElementById('folderBtn');
+        if (btn) { btn.style.borderColor = '#00ff00'; btn.style.color = '#00ff00'; }
+        console.log('✅ IndexedDBden ' + files.length + ' dosya yüklendi (çalmak için klasörü tekrar seçin)');
     }
 });
 
@@ -86,45 +88,55 @@ function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 function cleanFileName(name) {
     let fixed = name;
+    
+    // URL decode
     try { fixed = decodeURIComponent(name); } catch(e) {}
     
-    // Manuel karakter düzeltme
-    const charMap = {
-        '%C4%B1': 'ı', '%C4%B0': 'İ', '%C3%BC': 'ü', '%C3%9C': 'Ü',
-        '%C3%B6': 'ö', '%C3%96': 'Ö', '%C3%A7': 'ç', '%C3%87': 'Ç',
-        '%C5%9F': 'ş', '%C5%9E': 'Ş', '%C4%9F': 'ğ', '%C4%9E': 'Ğ',
-        '%20': ' ', '%2F': '/', '%3A': ':', '%2C': ',', '%27': "'", '%26': '&'
+    // Manuel Türkçe karakter
+    const chars = {
+        '%C4%B1':'ı','%C4%B0':'İ','%C3%BC':'ü','%C3%9C':'Ü',
+        '%C3%B6':'ö','%C3%96':'Ö','%C3%A7':'ç','%C3%87':'Ç',
+        '%C5%9F':'ş','%C5%9E':'Ş','%C4%9F':'ğ','%C4%9E':'Ğ',
+        '%20':' ','%2F':'/','%3A':':','%2C':',','%27':"'",'%26':'&','%23':'#','%21':'!','%28':'(','%29':')','%5B':'[','%5D':']','%2B':'+','%3D':'=','%3B':';','%40':'@','%24':'$','%25':'%','%5E':'^','%60':'`'
     };
-    for (const [code, char] of Object.entries(charMap)) {
-        fixed = fixed.split(code).join(char);
+    for (const [c, r] of Object.entries(chars)) {
+        while (fixed.includes(c)) fixed = fixed.replace(c, r);
     }
     
-    // Sadece dosya adı
+    // SADECE dosya adı (son bölüm)
     const parts = fixed.split('/');
     fixed = parts[parts.length - 1];
     
     // Uzantıyı kaldır
     fixed = fixed.replace(/\.[^.]+$/, '');
     
-    // Baştaki numaraları temizle
-    fixed = fixed.replace(/^\d+[\.\-\s\)]\s*/, '').replace(/^\d+\s*-\s*/, '');
+    // === TÜM GEREKSİZ EKLERİ TEMİZLE ===
     
-    // YouTube ID'lerini temizle: (_abc123_) veya (_AbC123def_)
+    // Baştaki numaralar
+    fixed = fixed.replace(/^\d+[\.\-\s\)]\s*/, '');
+    fixed = fixed.replace(/^\d+\s*-\s*/, '');
+    
+    // YouTube ID'leri: (_abc123_) veya sonunda 11 karakter
     fixed = fixed.replace(/\(_[a-zA-Z0-9_-]{8,15}_\)/g, '');
     fixed = fixed.replace(/\([a-zA-Z0-9_-]{11}\)$/g, '');
     fixed = fixed.replace(/[a-zA-Z0-9_-]{11}$/g, '');
     
-    // Gereksiz etiketler
-    fixed = fixed.replace(/\(Official.*?\)/gi, '').replace(/\[Official.*?\]/gi, '');
-    fixed = fixed.replace(/\(Lyric.*?\)/gi, '').replace(/\(Audio.*?\)/gi, '');
-    fixed = fixed.replace(/\(Video.*?\)/gi, '').replace(/\(HD.*?\)/gi, '');
-    fixed = fixed.replace(/\(HQ.*?\)/gi, '').replace(/\(1080p.*?\)/gi, '');
-    fixed = fixed.replace(/\(720p.*?\)/gi, '').replace(/\(Full.*?\)/gi, '');
+    // Parantez içindeki her şeyi temizle
+    fixed = fixed.replace(/\(.*?\)/g, '');
+    fixed = fixed.replace(/\[.*?\]/g, '');
     
-    // Fazla boşluk ve tireleri temizle
-    fixed = fixed.replace(/\s+/g, ' ').replace(/\s*-\s*$/, '').trim();
+    // Tire ile ayrılmış son ekleri temizle
+    fixed = fixed.replace(/\s*-\s*$/, '');
     
-    return fixed || 'Bilinmeyen';
+    // Fazla boşluk
+    fixed = fixed.replace(/\s+/g, ' ').trim();
+    
+    // Hala bozuksa
+    if (!fixed || fixed.length < 2) {
+        fixed = parts[parts.length - 1]?.replace(/\.[^.]+$/, '') || 'Bilinmeyen';
+    }
+    
+    return fixed;
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -135,33 +147,61 @@ document.addEventListener('DOMContentLoaded', () => {
         showStatus(`📂 ${allFiles.length} dosya taranıyor...`);
         await sleep(50);
         
+        // SADECE müzik dosyaları
+        const validExts = ['mp3','m4a','wav','flac','ogg','aac','opus','wma'];
+        const junkWords = ['ringtone','rington','alarm','notification','notify','ui_sound','system','camera','screenshot','whatsapp audio','whatsapp voice','ptt-','voice note','call recording','callrecord'];
+        
         const musicFiles = allFiles.filter(f => {
             const name = f.name.toLowerCase();
             const ext = name.split('.').pop();
-            if (!['mp3','m4a','wav','flac','ogg','aac','opus','wma'].includes(ext)) return false;
-            const junk = ['ringtone','rington','alarm','notification','notify','ui_sound','system','camera','screenshot','whatsapp audio','whatsapp voice','ptt-','voice note','call recording','callrecord'];
-            if (junk.some(j => name.includes(j))) return false;
+            if (!validExts.includes(ext)) return false;
+            if (junkWords.some(j => name.includes(j))) return false;
             if (f.size < 10000) return false;
             return true;
         });
         
         if (!musicFiles.length) { showStatus('❌ Müzik bulunamadı!'); return; }
         
+        showStatus(`📂 ${musicFiles.length} müzik bulundu`);
+        await sleep(50);
+        
+        // DOSYALARI İŞLE - File objesini KORU
         localFiles = [];
-        for (let i = 0; i < musicFiles.length; i += 50) {
-            const chunk = musicFiles.slice(i, i + 50);
+        const chunkSize = 50;
+        
+        for (let i = 0; i < musicFiles.length; i += chunkSize) {
+            const chunk = musicFiles.slice(i, i + chunkSize);
+            
             for (const f of chunk) {
-                localFiles.push({ name: cleanFileName(f.name), fullName: f.name, size: f.size, type: f.type, file: f });
+                localFiles.push({
+                    name: cleanFileName(f.name),
+                    fullName: f.name,
+                    size: f.size,
+                    type: f.type,
+                    file: f  // ← FILE OBJESİ BURADA!
+                });
             }
-            showStatus(`📂 ${Math.min(i+50, musicFiles.length)}/${musicFiles.length}`);
-            await sleep(30);
+            
+            showStatus(`📂 ${Math.min(i + chunkSize, musicFiles.length)}/${musicFiles.length}`);
+            await sleep(20);
         }
         
+        // IndexedDB'ye META veriyi kaydet (File objesi olmadan)
         await saveFilesToDB(localFiles);
-        document.getElementById('folderInfo').textContent = `Müzik (${localFiles.length} şarkı) ✅`;
+        
+        // Klasör adı
+        let folderName = 'Müzik';
+        try {
+            const path = musicFiles[0].webkitRelativePath || musicFiles[0].name;
+            const parts = path.split('/');
+            if (parts.length > 1) folderName = cleanFileName(parts[0]);
+        } catch(e) {}
+        
+        document.getElementById('folderInfo').textContent = `${folderName} (${localFiles.length} şarkı) ✅`;
         document.getElementById('folderBtn').style.borderColor = '#00ff00';
         document.getElementById('folderBtn').style.color = '#00ff00';
-        showStatus(`✅ ${localFiles.length} şarkı kaydedildi!`);
+        
+        showStatus(`✅ ${localFiles.length} şarkı hazır!`);
         e.target.value = '';
     });
 });
@@ -200,10 +240,7 @@ function startVoiceSearch() {
     };
     
     voiceRecognition.onerror = (e) => { showStatus('❌ ' + e.error); };
-    voiceRecognition.onend = () => {
-        document.getElementById('micBtn').classList.remove('listening');
-        voiceRecognition = null;
-    };
+    voiceRecognition.onend = () => { document.getElementById('micBtn').classList.remove('listening'); voiceRecognition = null; };
 }
 
 // ============ ARAMA ============
@@ -248,8 +285,21 @@ function searchLocal() {
     
     showResults('📱 Telefon' + (query ? ': ' + query : ''));
     
-    if (!localFiles.length) {
+    // Eğer localFiles boşsa ama IndexedDB'de varsa, klasörü tekrar seçmesini söyle
+    const hasFiles = localFiles.some(f => f.file !== null);
+    
+    if (localFiles.length === 0) {
         document.getElementById('resultsList').innerHTML = '<div class="empty-state">📂 Klasör seçilmedi<br><button onclick="pickFolder()" style="margin-top:8px;background:#0066ff;color:#fff;border:none;padding:8px 16px;border-radius:15px;cursor:pointer">📂 Klasör Seç</button></div>';
+        return;
+    }
+    
+    if (!hasFiles) {
+        document.getElementById('resultsList').innerHTML = `
+            <div class="empty-state">
+                ⚠️ Dosyalar bellekte yok<br>
+                <small>Uygulama yeniden açıldığında klasörü tekrar seçmelisiniz</small>
+                <button onclick="pickFolder()" style="margin-top:8px;background:#0066ff;color:#fff;border:none;padding:8px 16px;border-radius:15px;cursor:pointer;display:block;width:100%">📂 Klasörü Tekrar Seç</button>
+            </div>`;
         return;
     }
     
@@ -306,20 +356,22 @@ function playResult(index) {
     if (index < 0 || index >= searchResults.length) return;
     
     searchResultIndex = index;
-    
     document.querySelectorAll('.result-item').forEach((el, i) => el.classList.toggle('playing', i === index));
     
     const item = searchResults[index];
     if (item.type === 'youtube') {
         addAndPlay({ id: item.videoId, title: item.title, artist: item.artist, thumbnail: item.thumbnail, source: 'youtube' });
     } else {
+        // Yerel dosya - File objesini kontrol et
+        if (!item.file || !item.file.file) {
+            showStatus('❌ Dosya bellekte yok. Klasörü tekrar seçin.');
+            return;
+        }
         addAndPlay({ id: 'local_' + item.name, title: item.name, artist: 'Telefon', thumbnail: '', source: 'local', file: item.file });
     }
 }
 
-function closeResults() { 
-    document.getElementById('resultsBox').style.display = 'none'; 
-}
+function closeResults() { document.getElementById('resultsBox').style.display = 'none'; }
 
 // ============ LİNK ============
 
@@ -364,11 +416,16 @@ function playTrack(track) {
     document.getElementById('artist').textContent = track.artist;
     document.getElementById('thumbnail').src = track.thumbnail || '';
     document.getElementById('playBtn').textContent = '⏸️';
+    document.getElementById('seekSlider').value = 0;
+    document.getElementById('seekTime').textContent = '00:00 / 00:00';
     isPlaying = true;
     currentSource = track.source;
     
-    if (track.source === 'youtube') playYouTube(track);
-    else if (track.source === 'local' && track.file?.file) playLocal(track);
+    if (track.source === 'youtube') {
+        playYouTube(track);
+    } else if (track.source === 'local') {
+        playLocal(track);
+    }
     
     updateUI();
     saveSession(track);
@@ -388,14 +445,14 @@ function playYouTube(track) {
                         e.target.setVolume(localStorage.getItem('vol_v16') || 70);
                         e.target.unMute();
                         e.target.playVideo();
-                        updateSeekBar();
+                        startSeekUpdate();
                     },
                     onStateChange: (e) => {
-                        if (e.data === 0) nextTrack();
-                        else if (e.data === 1) { isPlaying = true; document.getElementById('playBtn').textContent = '⏸️'; updateSeekBar(); }
+                        if (e.data === 0) { stopSeekUpdate(); nextTrack(); }
+                        else if (e.data === 1) { isPlaying = true; document.getElementById('playBtn').textContent = '⏸️'; }
                         else if (e.data === 2) { isPlaying = false; document.getElementById('playBtn').textContent = '▶️'; }
                     },
-                    onError: () => { showStatus('❌ Video çalınamadı'); setTimeout(() => nextTrack(), 1000); }
+                    onError: () => { stopSeekUpdate(); showStatus('❌ Video çalınamadı'); setTimeout(() => nextTrack(), 1000); }
                 }
             });
         } catch(e) {}
@@ -412,18 +469,52 @@ function playYouTube(track) {
 }
 
 function playLocal(track) {
+    console.log('📱 Yerel çalınıyor:', track.title);
+    
+    // File objesini kontrol et
+    if (!track.file || !track.file.file) {
+        showStatus('❌ Dosya bulunamadı! Klasörü tekrar seçin.');
+        stopAll();
+        document.getElementById('player').style.display = 'none';
+        return;
+    }
+    
     try {
         const url = URL.createObjectURL(track.file.file);
         localAudio.src = url;
         localAudio.volume = (localStorage.getItem('vol_v16') || 70) / 100;
-        localAudio.play();
-        localAudio.onended = () => nextTrack();
-        localAudio.onerror = () => { showStatus('❌ Dosya çalınamadı'); setTimeout(() => nextTrack(), 1000); };
-        localAudio.ontimeupdate = updateSeekBar;
-    } catch(e) {}
+        
+        localAudio.onloadedmetadata = () => {
+            localAudio.play();
+            startSeekUpdate();
+        };
+        
+        localAudio.onended = () => {
+            stopSeekUpdate();
+            nextTrack();
+        };
+        
+        localAudio.onerror = (e) => {
+            console.error('Yerel oynatma hatası:', e);
+            stopSeekUpdate();
+            showStatus('❌ Dosya çalınamadı: ' + (localAudio.error?.message || 'bilinmeyen hata'));
+            setTimeout(() => nextTrack(), 1000);
+        };
+        
+        // Hemen çalmayı dene (onloadedmetadata beklemeden)
+        localAudio.play().catch(err => {
+            console.log('Play hatası:', err);
+            showStatus('⚠️ Oynatma gecikti, bekleyin...');
+        });
+        
+    } catch(e) {
+        console.error('Local play hatası:', e);
+        showStatus('❌ Dosya açılamadı');
+    }
 }
 
 function stopAll() {
+    stopSeekUpdate();
     if (ytPlayer) { try { ytPlayer.stopVideo(); ytPlayer.destroy(); } catch(e) {} ytPlayer = null; }
     try { localAudio.pause(); localAudio.src = ''; } catch(e) {}
     isPlaying = false;
@@ -452,11 +543,8 @@ function togglePlay() {
 
 // ============ SEEK BAR ============
 
-let seekInterval = null;
-
-function updateSeekBar() {
-    if (seekInterval) clearInterval(seekInterval);
-    
+function startSeekUpdate() {
+    stopSeekUpdate();
     seekInterval = setInterval(() => {
         let current = 0, duration = 0;
         
@@ -476,6 +564,10 @@ function updateSeekBar() {
     }, 500);
 }
 
+function stopSeekUpdate() {
+    if (seekInterval) { clearInterval(seekInterval); seekInterval = null; }
+}
+
 function seekTo(value) {
     const time = parseFloat(value);
     if (currentSource === 'youtube' && ytPlayer && ytPlayer.seekTo) {
@@ -492,49 +584,41 @@ function formatTime(sec) {
     return m.toString().padStart(2, '0') + ':' + s.toString().padStart(2, '0');
 }
 
-// ============ GEZİNME (ARAMA SONUÇLARI ÖNCELİKLİ) ============
+// ============ GEZİNME ============
 
 function nextTrack() {
-    // Önce arama sonuçlarında ilerle
     if (searchResults.length > 0 && searchResultIndex < searchResults.length - 1) {
         playResult(searchResultIndex + 1);
         return;
     }
     
-    // Sonra playlist'te ilerle
     if (currentIndex < playlist.length - 1) {
         currentIndex++;
         playTrack(playlist[currentIndex]);
         return;
     }
     
-    // Hiçbiri yoksa dur
     stopAll();
     document.getElementById('player').style.display = 'none';
     showStatus('📋 Liste sonu');
 }
 
 function prevTrack() {
-    // Önce arama sonuçlarında geri git
     if (searchResults.length > 0 && searchResultIndex > 0) {
         playResult(searchResultIndex - 1);
         return;
     }
     
-    // Sonra playlist'te geri git
     if (currentIndex > 0) {
         currentIndex--;
         playTrack(playlist[currentIndex]);
         return;
     }
     
-    // En baştaysa başa sar
     if (currentSource === 'youtube' && ytPlayer) {
-        ytPlayer.seekTo(0);
-        ytPlayer.playVideo();
+        ytPlayer.seekTo(0); ytPlayer.playVideo();
     } else if (currentSource === 'local') {
-        localAudio.currentTime = 0;
-        localAudio.play();
+        localAudio.currentTime = 0; localAudio.play();
     }
     showStatus('🔄 Başa sarıldı');
 }
@@ -542,15 +626,13 @@ function prevTrack() {
 function pauseTrack() {
     if (currentSource === 'youtube' && ytPlayer) ytPlayer.pauseVideo();
     else if (currentSource === 'local') localAudio.pause();
-    isPlaying = false;
-    document.getElementById('playBtn').textContent = '▶️';
+    isPlaying = false; document.getElementById('playBtn').textContent = '▶️';
 }
 
 function resumeTrack() {
     if (currentSource === 'youtube' && ytPlayer) { ytPlayer.unMute(); ytPlayer.playVideo(); }
     else if (currentSource === 'local' && localAudio.src) localAudio.play();
-    isPlaying = true;
-    document.getElementById('playBtn').textContent = '⏸️';
+    isPlaying = true; document.getElementById('playBtn').textContent = '⏸️';
 }
 
 function setVolume(val) {
@@ -565,14 +647,10 @@ function clearPlaylist() {
     if (!playlist.length) return;
     if (confirm('Listeyi temizle?')) {
         stopAll();
-        playlist = [];
-        currentIndex = -1;
-        searchResults = [];
-        searchResultIndex = -1;
-        searchMode = null;
+        playlist = []; currentIndex = -1;
+        searchResults = []; searchResultIndex = -1; searchMode = null;
         document.getElementById('player').style.display = 'none';
-        savePlaylist();
-        updateUI();
+        savePlaylist(); updateUI();
     }
 }
 
@@ -595,32 +673,28 @@ function updateUI() {
         </div>
     `).join('');
     
+    const hasSearchResults = searchResults.length > 0;
     document.getElementById('prevBtn').disabled = (currentIndex <= 0 && searchResultIndex <= 0);
     document.getElementById('nextBtn').disabled = (currentIndex >= playlist.length - 1 && searchResultIndex >= searchResults.length - 1);
 }
 
 function clickTrack(i) {
-    searchResults = [];
-    searchResultIndex = -1;
-    searchMode = null;
-    currentIndex = i;
-    playTrack(playlist[i]);
+    searchResults = []; searchResultIndex = -1; searchMode = null;
+    currentIndex = i; playTrack(playlist[i]);
 }
 
 function removeTrack(i) {
     event.stopPropagation();
     if (currentIndex === i) { stopAll(); document.getElementById('player').style.display = 'none'; currentIndex = -1; }
     else if (currentIndex > i) currentIndex--;
-    playlist.splice(i, 1);
-    savePlaylist();
-    updateUI();
+    playlist.splice(i, 1); savePlaylist(); updateUI();
 }
 
 // ============ YARDIMCILAR ============
 
-function esc(t) { if (!t) return ''; const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+function esc(t) { if(!t) return ''; const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
 function savePlaylist() { try { localStorage.setItem('playlist_v16', JSON.stringify(playlist)); } catch(e) {} }
-function saveSession(t) { try { localStorage.setItem('session_v16', JSON.stringify({id: t.id, index: currentIndex})); } catch(e) {} }
+function saveSession(t) { try { localStorage.setItem('session_v16', JSON.stringify({id:t.id, index:currentIndex})); } catch(e) {} }
 
 function restoreSession() {
     try {
@@ -632,7 +706,7 @@ function restoreSession() {
                 document.getElementById('player').style.display = 'block';
                 document.getElementById('title').textContent = t.title;
                 document.getElementById('artist').textContent = t.artist;
-                if (t.thumbnail) document.getElementById('thumbnail').src = t.thumbnail;
+                if(t.thumbnail) document.getElementById('thumbnail').src = t.thumbnail;
             }
         }
     } catch(e) {}
@@ -651,7 +725,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// Başlangıç
 document.getElementById('volSlider').value = localStorage.getItem('vol_v16') || 70;
 updateUI();
-console.log('✅ v16.0 hazır');
+console.log('✅ v16.1 hazır');
