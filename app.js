@@ -1,5 +1,5 @@
-// YT MUSIC v16.3 - Klasör Durumu Düzeltmesi
-console.log('🎵 YT Music v16.3');
+// YT MUSIC v16.4 - Otomatik Klasör Seçme
+console.log('🎵 YT Music v16.4');
 
 let playlist = [];
 let currentIndex = -1;
@@ -12,10 +12,11 @@ let searchResultIndex = -1;
 let localFiles = [];
 let searchMode = null;
 let seekInterval = null;
+let autoSearchAfterFolder = false;
 
 // ============ INDEXEDDB ============
 
-const DB_NAME = 'ytmusic_db_v3';
+const DB_NAME = 'ytmusic_db_v4';
 const DB_VERSION = 1;
 const STORE_NAME = 'music_files';
 
@@ -71,13 +72,6 @@ loadFilesFromDB().then(files => {
         const btn = document.getElementById('folderBtn');
         if (btn) { btn.style.borderColor = '#ffaa00'; btn.style.color = '#ffaa00'; }
         console.log('✅ IndexedDBden ' + files.length + ' dosya yüklendi');
-        
-        setTimeout(() => {
-            const hasFiles = localFiles.some(f => f.file && f.file instanceof File);
-            if (!hasFiles && localFiles.length > 0) {
-                showStatus('⚠️ Dosyalar bellekte yok, klasörü tekrar seçin');
-            }
-        }, 1000);
     }
 });
 
@@ -90,7 +84,11 @@ if (window.YT && YT.Player) onYouTubeIframeAPIReady();
 
 // ============ KLASÖR ============
 
-function pickFolder() { document.getElementById('folderInput').click(); }
+function pickFolder() { 
+    autoSearchAfterFolder = true;
+    document.getElementById('folderInput').click(); 
+}
+
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 function cleanFileName(name) {
@@ -129,7 +127,11 @@ function cleanFileName(name) {
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('folderInput').addEventListener('change', async (e) => {
         const allFiles = Array.from(e.target.files);
-        if (!allFiles.length) { showStatus('❌ Klasör boş!'); return; }
+        if (!allFiles.length) { 
+            showStatus('❌ Klasör boş!'); 
+            autoSearchAfterFolder = false;
+            return; 
+        }
         
         showStatus(`📂 ${allFiles.length} dosya taranıyor...`);
         await sleep(50);
@@ -146,7 +148,11 @@ document.addEventListener('DOMContentLoaded', () => {
             return true;
         });
         
-        if (!musicFiles.length) { showStatus('❌ Müzik bulunamadı!'); return; }
+        if (!musicFiles.length) { 
+            showStatus('❌ Müzik bulunamadı!'); 
+            autoSearchAfterFolder = false;
+            return; 
+        }
         
         showStatus(`📂 ${musicFiles.length} müzik bulundu`);
         await sleep(50);
@@ -183,6 +189,18 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('folderBtn').style.color = '#00ff00';
         
         showStatus(`✅ ${localFiles.length} şarkı hazır!`);
+        
+        // OTOMATİK ARAMA
+        if (autoSearchAfterFolder) {
+            autoSearchAfterFolder = false;
+            const currentQuery = document.getElementById('searchInput').value.trim();
+            if (currentQuery) {
+                setTimeout(() => searchLocal(), 300);
+            } else if (searchMode === 'local') {
+                setTimeout(() => searchLocal(), 300);
+            }
+        }
+        
         e.target.value = '';
     });
 });
@@ -280,10 +298,15 @@ function searchLocal() {
     if (!hasFiles) {
         document.getElementById('resultsList').innerHTML = `
             <div class="empty-state" style="color:#ffaa00">
-                ⚠️ Klasör yeniden bağlanmalı<br>
-                <small style="color:#888">${localFiles.length} şarkı kayıtlı ama dosyalara erişim yok</small>
-                <button onclick="pickFolder()" style="margin-top:8px;background:#0066ff;color:#fff;border:none;padding:10px 20px;border-radius:20px;cursor:pointer;font-size:14px;width:100%">📂 Klasörü Tekrar Seç</button>
+                ⚠️ ${localFiles.length} şarkı kayıtlı ama erişim yok<br>
+                <small style="color:#888">Klasör seçme penceresi açılıyor...</small>
             </div>`;
+        
+        // OTOMATİK KLASÖR SEÇ
+        setTimeout(() => {
+            pickFolder();
+        }, 500);
+        
         return;
     }
     
@@ -642,4 +665,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
 document.getElementById('volSlider').value = localStorage.getItem('vol_v16') || 70;
 updateUI();
-console.log('✅ v16.3 hazır');
+console.log('✅ v16.4 hazır - Otomatik klasör seçme');
