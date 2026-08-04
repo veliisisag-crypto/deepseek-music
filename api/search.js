@@ -1,24 +1,23 @@
-// Vercel Serverless Function
-// YouTube Data API v3 ile arama yapar
-// API anahtarı sunucuda kalır, istemciye gitmez
-
 export default async function handler(req, res) {
-    // CORS header'ları
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
     
     const query = req.query.q?.trim();
     
     if (!query) {
-        return res.status(400).json({ error: 'Arama terimi gerekli' });
+        return res.status(400).json({ error: 'Arama terimi gerekli (q=...)' });
     }
     
     const apiKey = process.env.YOUTUBE_API_KEY;
     
     if (!apiKey) {
         return res.status(500).json({ 
-            error: 'API anahtarı tanımlı değil',
-            hint: 'Vercel dashboard → Settings → Environment Variables → YOUTUBE_API_KEY ekleyin'
+            error: 'API anahtarı bulunamadı',
+            fix: 'Vercel Dashboard > Settings > Environment Variables > YOUTUBE_API_KEY ekleyin'
         });
     }
     
@@ -27,7 +26,7 @@ export default async function handler(req, res) {
         url.searchParams.set('part', 'snippet');
         url.searchParams.set('type', 'video');
         url.searchParams.set('videoCategoryId', '10'); // Müzik
-        url.searchParams.set('maxResults', '20');
+        url.searchParams.set('maxResults', '50');       // ← 50 sonuç
         url.searchParams.set('q', query);
         url.searchParams.set('key', apiKey);
         
