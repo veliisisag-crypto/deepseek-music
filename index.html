@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#ff0000">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>YT Müzik v11.0</title>
+    <title>YT Müzik v12.0</title>
     <link rel="manifest" href="manifest.json">
     <style>
         *{margin:0;padding:0;box-sizing:border-box}
@@ -18,7 +18,7 @@
         
         .box{background:#1a1a1a;border-radius:15px;padding:18px;margin-bottom:15px;border:1px solid #222}
         
-        .search-row{display:flex;gap:8px;margin-bottom:10px}
+        .search-row{display:flex;gap:8px;margin-bottom:8px}
         .search-row input{flex:1;padding:14px 16px;border:2px solid #333;border-radius:25px;background:#111;color:#fff;font-size:15px;-webkit-appearance:none;min-width:0}
         .search-row input:focus{outline:none;border-color:#ff0000}
         .btn-icon{width:50px;height:50px;border-radius:50%;border:none;font-size:20px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all 0.2s}
@@ -29,11 +29,11 @@
         @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,0,0,0.5)}50%{box-shadow:0 0 0 18px rgba(255,0,0,0)}}
         
         .btn-row{display:flex;gap:8px}
-        .btn-row button{flex:1;padding:12px;border:none;border-radius:25px;font-size:14px;font-weight:bold;cursor:pointer;transition:all 0.2s}
+        .btn-row button{flex:1;padding:12px;border:none;border-radius:25px;font-size:14px;font-weight:bold;cursor:pointer}
         .btn-paste{background:#333;color:#fff}
         .btn-play{background:#ff0000;color:#fff}
         
-        .results-box{display:none;max-height:450px;overflow-y:auto}
+        .results-box{display:none;max-height:400px;overflow-y:auto}
         .results-box::-webkit-scrollbar{width:4px}
         .results-box::-webkit-scrollbar-track{background:#111}
         .results-box::-webkit-scrollbar-thumb{background:#ff0000;border-radius:2px}
@@ -43,7 +43,7 @@
         .btn-close{background:none;border:1px solid #555;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:14px}
         
         .result-item{display:flex;align-items:center;gap:12px;padding:12px;background:#222;border-radius:10px;margin:6px 0;cursor:pointer;border:2px solid transparent;transition:all 0.2s}
-        .result-item:hover,.result-item:active{background:#2a2a2a;border-color:#ff0000}
+        .result-item:active{background:#2a2a2a}
         .result-item.playing{border-color:#00ff00!important;background:#1a2a1a!important}
         .result-item img{width:55px;height:55px;border-radius:8px;object-fit:cover;flex-shrink:0;background:#333}
         .result-info{flex:1;min-width:0}
@@ -68,7 +68,7 @@
         .playlist-item{display:flex;align-items:center;gap:10px;padding:11px;background:#222;border-radius:10px;margin:5px 0;cursor:pointer;border:2px solid transparent}
         .playlist-item:active{background:#2a2a2a}
         .playlist-item.active{background:linear-gradient(135deg,#cc0000,#ff0000)}
-        .playlist-item img{width:40px;height:40px;border-radius:6px;flex-shrink:0;object-fit:cover}
+        .playlist-item img{width:40px;height:40px;border-radius:6px;flex-shrink:0}
         .playlist-item .info{flex:1;min-width:0}
         .playlist-item strong{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
         .playlist-item small{color:#888;font-size:11px}
@@ -79,13 +79,14 @@
         @keyframes spin{to{transform:rotate(360deg)}}
         
         .empty-state{text-align:center;color:#555;padding:30px}
+        .error-state{text-align:center;color:#ff4444;padding:20px;font-size:14px}
         
         #playerFrame{position:fixed;bottom:-9999px;right:-9999px;width:1px;height:1px;opacity:0;pointer-events:none}
     </style>
 </head>
 <body>
     <div class="top-bar">
-        <span class="version">🎵 v11.0</span>
+        <span class="version">🎵 v12.0</span>
         <span class="top-title">YouTube Müzik</span>
     </div>
 
@@ -106,7 +107,7 @@
         <!-- SONUÇLAR -->
         <div id="resultsBox" class="box results-box">
             <div class="results-header">
-                <h3>🔍 Arama Sonuçları (<span id="resultCount">0</span>)</h3>
+                <h3>🔍 Sonuçlar (<span id="resultCount">0</span>)</h3>
                 <button onclick="closeResults()" class="btn-close">✕</button>
             </div>
             <div id="resultsList"></div>
@@ -144,6 +145,6 @@
     <div id="playerFrame"><div id="ytplayer"></div></div>
 
     <script src="https://www.youtube.com/iframe_api"></script>
-    <script src="app.js?v=11.0"></script>
+    <script src="app.js?v=12.0"></script>
 </body>
 </html>
