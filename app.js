@@ -1,5 +1,5 @@
-// YT MUSIC v17.0 - IndexedDB'ye Dosya Kaydetme (Tek Seferlik Klasör)
-console.log('🎵 YT Music v17.0');
+// öz MYT MUSIC v17.0 - IndexedDB'ye Dosya Kaydetme (Tek Seferlik Klasör)
+console.log('🎵 öz MYT Music v17.0');
 
 let playlist = [];
 let currentIndex = -1;
