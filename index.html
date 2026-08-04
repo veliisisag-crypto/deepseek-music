@@ -6,14 +6,13 @@
     <meta name="theme-color" content="#ff0000">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>YT Müzik v7.0</title>
+    <title>YT Müzik v8.0</title>
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
 </head>
 <body>
-    <!-- ÜST BAR -->
     <div class="top-bar">
-        <span class="version">🎵 v7.0</span>
+        <span class="version">🎵 v8.0</span>
         <span class="top-title">YouTube Müzik</span>
     </div>
 
@@ -21,15 +20,24 @@
         <!-- ARAMA KUTUSU -->
         <div class="search-box">
             <div class="search-row">
-                <input type="text" id="urlInput" placeholder="Şarkı ara veya link yapıştır..." autocomplete="off">
-                <button onclick="searchYouTube()" class="search-btn" title="YouTube'da Ara">🔍</button>
-                <button onclick="startVoiceSearch()" class="mic-btn" id="micBtn" title="Sesli Ara">🎤</button>
+                <input type="text" id="searchInput" placeholder="Şarkı veya sanatçı ara..." autocomplete="off">
+                <button onclick="doSearch()" class="search-btn">🔍</button>
+                <button onclick="startVoiceSearch()" class="mic-btn" id="micBtn">🎤</button>
             </div>
             <div class="action-buttons">
-                <button onclick="pasteAndPlay()" class="btn-paste">📋 Yapıştır ve Oynat</button>
-                <button onclick="playUrl()" class="btn-play">▶️ Oynat</button>
+                <button onclick="pasteAndPlay()" class="btn-paste">📋 Link Yapıştır</button>
+                <button onclick="playDirectUrl()" class="btn-play">▶️ Oynat</button>
             </div>
             <div id="voiceStatus" class="voice-status"></div>
+        </div>
+
+        <!-- ARAMA SONUÇLARI -->
+        <div id="searchResults" class="search-results" style="display:none">
+            <div class="results-header">
+                <h3>Arama Sonuçları</h3>
+                <button onclick="closeSearch()" class="btn-close">✕</button>
+            </div>
+            <div id="resultsList"></div>
         </div>
 
         <!-- PLAYER -->
@@ -63,9 +71,6 @@
 
     <!-- Gizli YouTube Player -->
     <div id="playerFrame"><div id="ytplayer"></div></div>
-    
-    <!-- Gizli audio (mikrofon için) -->
-    <audio id="audioFeedback" style="display:none"></audio>
 
     <script src="https://www.youtube.com/iframe_api"></script>
     <script src="app.js"></script>
