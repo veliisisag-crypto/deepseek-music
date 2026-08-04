@@ -593,4 +593,164 @@ function destroyYouTubePlayer() {
 function togglePlay() {
     if (currentSource === 'youtube') {
         if (!ytPlayer) {
-            if (currentIndex >=
+            if (currentIndex >= 0) playTrack(playlist[currentIndex]);
+            return;
+        }
+        try {
+            if (isPlaying) ytPlayer.pauseVideo();
+            else { ytPlayer.unMute(); ytPlayer.playVideo(); }
+        } catch(e) {}
+    } else if (currentSource === 'local') {
+        if (localAudio.src) {
+            if (isPlaying) { localAudio.pause(); isPlaying = false; document.getElementById('playBtn').textContent = '▶️'; }
+            else { localAudio.play(); isPlaying = true; document.getElementById('playBtn').textContent = '⏸️'; }
+        }
+    }
+}
+
+function pauseTrack() {
+    if (currentSource === 'youtube' && ytPlayer) ytPlayer.pauseVideo();
+    else if (currentSource === 'local') localAudio.pause();
+    isPlaying = false;
+    document.getElementById('playBtn').textContent = '▶️';
+}
+
+function resumeTrack() {
+    if (currentSource === 'youtube' && ytPlayer) { ytPlayer.unMute(); ytPlayer.playVideo(); }
+    else if (currentSource === 'local' && localAudio.src) localAudio.play();
+    isPlaying = true;
+    document.getElementById('playBtn').textContent = '⏸️';
+}
+
+function playTrack(track) {
+    if (track.source === 'youtube') playYouTubeTrack(track);
+    else if (track.source === 'local') playLocalTrack(track);
+}
+
+function nextTrack() {
+    if (searchResults.length > 0 && currentSearchIndex < searchResults.length - 1) {
+        playSearchResult(currentSearchIndex + 1);
+    } else if (currentIndex < playlist.length - 1) {
+        currentIndex++;
+        playTrack(playlist[currentIndex]);
+    } else {
+        stopAll();
+        document.getElementById('player').style.display = 'none';
+    }
+}
+
+function prevTrack() {
+    if (searchResults.length > 0 && currentSearchIndex > 0) {
+        playSearchResult(currentSearchIndex - 1);
+    } else if (currentIndex > 0) {
+        currentIndex--;
+        playTrack(playlist[currentIndex]);
+    }
+}
+
+function stopAll() {
+    stopYouTubePlayer();
+    stopLocalAudio();
+    isPlaying = false;
+    document.getElementById('playBtn').textContent = '▶️';
+}
+
+function setVolume(val) {
+    if (ytPlayer) ytPlayer.setVolume(val);
+    if (localAudio) localAudio.volume = val / 100;
+    localStorage.setItem('volume_v13', val);
+}
+
+// ============ PLAYLIST ============
+
+function clearPlaylist() {
+    if (!playlist.length) return;
+    if (confirm('Listeyi temizle?')) {
+        stopAll();
+        playlist = [];
+        currentIndex = -1;
+        document.getElementById('player').style.display = 'none';
+        savePlaylist();
+        updateUI();
+    }
+}
+
+function updateUI() {
+    const pl = document.getElementById('playlist');
+    document.getElementById('count').textContent = playlist.length;
+    
+    if (!playlist.length) {
+        pl.innerHTML = '<div class="empty-state">🎵 Liste boş</div>';
+        document.getElementById('prevBtn').disabled = true;
+        document.getElementById('nextBtn').disabled = true;
+        return;
+    }
+    
+    pl.innerHTML = playlist.map((t, i) => `
+        <div class="playlist-item${i === currentIndex ? ' active' : ''}" onclick="clickTrack(${i})">
+            ${t.thumbnail ? `<img src="${t.thumbnail}" onerror="this.style.display='none'">` : '<div class="result-icon local">🎵</div>'}
+            <div class="info">
+                <strong>${escapeHtml(t.title)} ${t.source === 'youtube' ? '<span class="badge badge-yt">YT</span>' : '<span class="badge badge-local">📱</span>'}</strong>
+                <small>${escapeHtml(t.artist)}</small>
+            </div>
+            <button class="btn-remove" onclick="event.stopPropagation();removeTrack(${i})">✕</button>
+        </div>
+    `).join('');
+    
+    document.getElementById('prevBtn').disabled = currentIndex <= 0;
+    document.getElementById('nextBtn').disabled = currentIndex >= playlist.length - 1;
+}
+
+function clickTrack(i) { 
+    currentIndex = i; 
+    searchResults = []; 
+    currentSearchIndex = -1; 
+    playTrack(playlist[i]); 
+}
+
+function removeTrack(i) {
+    event.stopPropagation();
+    if (currentIndex === i) { stopAll(); document.getElementById('player').style.display = 'none'; currentIndex = -1; }
+    else if (currentIndex > i) currentIndex--;
+    playlist.splice(i, 1);
+    savePlaylist();
+    updateUI();
+}
+
+// ============ YARDIMCILAR ============
+
+function escapeHtml(t) { if(!t) return ''; const d = document.createElement('div'); d.textContent = t; return d.innerHTML; }
+function savePlaylist() { try { localStorage.setItem('playlist_v13', JSON.stringify(playlist)); } catch(e) {} }
+function saveSession(track) { try { localStorage.setItem('session_v13', JSON.stringify({id: track.id, index: currentIndex})); } catch(e) {} }
+function restoreSession() {
+    try {
+        const s = localStorage.getItem('session_v13');
+        if (s && playlist.length) {
+            const d = JSON.parse(s);
+            const t = playlist.find(x => x.id === d.id);
+            if (t) { 
+                currentIndex = d.index; 
+                document.getElementById('player').style.display = 'block'; 
+                document.getElementById('title').textContent = t.title; 
+                document.getElementById('artist').textContent = t.artist; 
+                if (t.thumbnail) document.getElementById('thumbnail').src = t.thumbnail;
+            }
+        }
+    } catch(e) {}
+}
+
+// Enter tuşu
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('searchInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            const v = document.getElementById('searchInput').value.trim();
+            if (v.includes('youtube.com') || v.includes('youtu.be')) playFromInput();
+            else if (v) searchYouTube();
+        }
+    });
+});
+
+// Başlangıç
+document.getElementById('volSlider').value = localStorage.getItem('volume_v13') || 70;
+updateUI();
+console.log('✅ v13.0 hazır - Sürekli Dinleme + Yerel + YouTube');
