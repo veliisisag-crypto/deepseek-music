@@ -685,4 +685,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
 document.getElementById('volSlider').value = localStorage.getItem('vol_v17') || 70;
 updateUI();
-console.log('✅ v17.0 hazır - IndexedDB dosya depolama');
+console.log('🎵 Welly Player v17.1');
