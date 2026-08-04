@@ -2,56 +2,75 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#ff0000">
-    <meta name="description" content="YouTube müziklerini sadece ses olarak dinleyin - Veri tasarruflu PWA">
-    <title>YouTube Müzik - Sadece Ses</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>YouTube Müzik PWA v4.0</title>
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎵</text></svg>">
-    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎵</text></svg>">
+    <style>
+        #version-badge {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: #ff0000;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            z-index: 999;
+            box-shadow: 0 2px 10px rgba(255,0,0,0.3);
+        }
+    </style>
 </head>
 <body>
+    <!-- VERSİYON GÖSTERGESİ -->
+    <div id="version-badge">v4.0 🎵</div>
+
     <div class="container">
         <header>
             <h1>🎵 YouTube Müzik</h1>
-            <p class="subtitle">Sadece Ses • Veri Tasarruflu • API'siz</p>
+            <p class="subtitle">Sadece Ses • Veri Tasarruflu • v4.0</p>
         </header>
 
         <div class="search-container">
-            <input type="text" id="searchInput" placeholder="Şarkı adı, sanatçı veya YouTube linki yapıştır...">
-            <button id="searchBtn">🔍 Ara</button>
-            <button id="pasteBtn">📋 Yapıştır</button>
+            <input type="text" id="urlInput" placeholder="YouTube video linkini buraya yapıştırın...">
+            <button id="playBtn">▶️ Oynat</button>
+        </div>
+
+        <div class="quick-help">
+            <p>💡 <strong>Nasıl kullanılır:</strong> YouTube'dan video linkini kopyalayın, buraya yapıştırın, "Oynat"a tıklayın.</p>
         </div>
 
         <div class="player-container" id="playerContainer" style="display: none;">
             <div class="now-playing">
                 <img id="thumbnail" src="" alt="Kapak" class="thumbnail">
                 <div class="song-info">
-                    <h3 id="title">Şarkı seçilmedi</h3>
-                    <p id="artist">Sanatçı bilinmiyor</p>
+                    <h3 id="title">Hazır</h3>
+                    <p id="artist">Link yapıştırın</p>
                 </div>
             </div>
 
-            <div class="audio-player">
-                <audio id="audioPlayer" controls></audio>
-            </div>
-
-            <div class="controls">
+            <div class="custom-controls">
                 <button id="prevBtn" disabled>⏮️</button>
-                <button id="playBtn">▶️</button>
+                <button id="playPauseBtn" class="play-btn">▶️</button>
                 <button id="nextBtn" disabled>⏭️</button>
             </div>
 
             <div class="volume-control">
-                <span>🔊</span>
+                <span>🔈</span>
                 <input type="range" id="volumeSlider" min="0" max="100" value="70">
+                <span>🔊</span>
                 <span id="volumeValue">70%</span>
+            </div>
+
+            <div class="status-bar">
+                <span id="statusText">Hazır</span>
             </div>
         </div>
 
-        <div class="search-results" id="searchResults"></div>
-        
         <div class="playlist" id="playlist">
             <h3>📜 Çalma Listesi <span id="playlistCount">(0)</span></h3>
             <button id="clearPlaylist" class="clear-btn">🗑️ Listeyi Temizle</button>
@@ -59,11 +78,17 @@
         </div>
     </div>
 
+    <!-- YouTube Player (gizli) -->
+    <div id="yt-player-container" style="position: fixed; bottom: -9999px; right: -9999px; width: 1px; height: 1px; opacity: 0; pointer-events: none;">
+        <div id="yt-player"></div>
+    </div>
+
     <div class="loading" id="loading" style="display: none;">
         <div class="spinner"></div>
         <p id="loadingText">Yükleniyor...</p>
     </div>
 
-    <script src="app.js"></script>
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <script src="app.js?v=4.0"></script>
 </body>
 </html>
