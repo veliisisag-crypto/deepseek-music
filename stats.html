@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#ff0000">
+    <title>Veri İstatistikleri - YT Müzik</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="top-bar">
+        <a href="index.html" class="back-link">⬅️ Müzik Çalar</a>
+        <span class="version">📊 v6.0</span>
+    </div>
+
+    <div class="container">
+        <header>
+            <h1>📊 Veri İstatistikleri</h1>
+            <p class="subtitle">Ne kadar veri tasarrufu yaptınız?</p>
+        </header>
+
+        <!-- ANA İSTATİSTİKLER -->
+        <div class="stats-grid">
+            <div class="stat-card highlight">
+                <div class="stat-icon">💾</div>
+                <div class="stat-value" id="totalData">0 MB</div>
+                <div class="stat-label">Toplam Kullanılan Veri</div>
+            </div>
+            
+            <div class="stat-card highlight-green">
+                <div class="stat-icon">💰</div>
+                <div class="stat-value" id="totalSaved">0 MB</div>
+                <div class="stat-label">Toplam Tasarruf</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">🎵</div>
+                <div class="stat-value" id="totalSongs">0</div>
+                <div class="stat-label">Dinlenen Şarkı</div>
+            </div>
+            
+            <div class="stat-card">
+                <div class="stat-icon">🕐</div>
+                <div class="stat-value" id="totalTime">00:00:00</div>
+                <div class="stat-label">Toplam Süre</div>
+            </div>
+        </div>
+
+        <!-- TASARRUF ORANI -->
+        <div class="box savings-box">
+            <h2 style="text-align:center;margin-bottom:15px">📉 Tasarruf Oranı</h2>
+            <div class="savings-bar">
+                <div class="savings-fill" id="savingsFill" style="width: 0%"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:10px">
+                <span>Ses: 140 kbps</span>
+                <span id="savingsPercent">%0</span>
+                <span>Video: 2500 kbps</span>
+            </div>
+        </div>
+
+        <!-- KARŞILAŞTIRMA -->
+        <div class="box">
+            <h3 style="margin-bottom:15px">📊 Video vs Sadece Ses</h3>
+            <div class="comparison">
+                <div class="comp-item">
+                    <h4>🎥 Video İzleseydiniz</h4>
+                    <div class="comp-value" id="videoWouldUse">0 MB</div>
+                    <div class="comp-bar" style="background:#333">
+                        <div class="comp-fill video-fill" id="videoFill" style="width:100%"></div>
+                    </div>
+                </div>
+                <div class="comp-item">
+                    <h4>🎵 Sadece Ses (Şu Anki)</h4>
+                    <div class="comp-value" id="audioUse">0 MB</div>
+                    <div class="comp-bar" style="background:#333">
+                        <div class="comp-fill audio-fill" id="audioFill" style="width:5.6%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- GÜNLÜK / HAFTALIK -->
+        <div class="box">
+            <h3 style="margin-bottom:15px">📅 Kullanım Geçmişi</h3>
+            <div id="historyContainer">
+                <p style="text-align:center;color:#888;padding:20px">
+                    Henüz veri yok.<br>Müzik dinledikçe burada göreceksiniz.
+                </p>
+            </div>
+        </div>
+
+        <!-- SIFIRLA -->
+        <div class="box" style="text-align:center">
+            <button onclick="resetStats()" class="btn-danger">🗑️ İstatistikleri Sıfırla</button>
+            <p style="color:#888;font-size:12px;margin-top:10px">
+                Bu işlem tüm veri kullanım geçmişini siler.
+            </p>
+        </div>
+    </div>
+
+    <script src="stats.js"></script>
+</body>
+</html>
