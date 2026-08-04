@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#ff0000">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>YT Müzik v13.0</title>
+    <title>YT Müzik v14.0</title>
     <link rel="manifest" href="manifest.json">
     <style>
         *{margin:0;padding:0;box-sizing:border-box}
@@ -16,139 +16,106 @@
         .version{background:#ff0000;color:#fff;padding:6px 14px;border-radius:15px;font-weight:bold;font-size:12px}
         .top-title{color:#888;font-size:13px}
         
-        /* MİKROFON DURUMU */
-        .mic-status{display:flex;align-items:center;gap:8px;background:#1a3a1a;border:2px solid #00ff00;border-radius:25px;padding:10px 18px;margin-bottom:15px}
-        .mic-status.off{background:#3a1a1a;border-color:#ff0000}
-        .mic-dot{width:12px;height:12px;border-radius:50%;background:#00ff00;animation:pulse 1.2s infinite}
-        .mic-status.off .mic-dot{background:#ff0000;animation:none}
-        .mic-text{font-size:14px;font-weight:bold}
-        .mic-status.off .mic-text{color:#ff0000}
-        .btn-mic-toggle{background:#333;color:#fff;border:none;padding:8px 16px;border-radius:20px;font-size:13px;cursor:pointer;margin-left:auto}
-        @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.3}}
-        
         .box{background:#1a1a1a;border-radius:15px;padding:18px;margin-bottom:15px;border:1px solid #222}
         
-        /* ARAMA */
         .search-row{display:flex;gap:8px;margin-bottom:8px}
         .search-row input{flex:1;padding:14px 16px;border:2px solid #333;border-radius:25px;background:#111;color:#fff;font-size:15px;-webkit-appearance:none;min-width:0}
         .search-row input:focus{outline:none;border-color:#ff0000}
-        .btn-icon{width:50px;height:50px;border-radius:50%;border:none;font-size:20px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all 0.2s}
-        .btn-icon:active{transform:scale(0.9)}
-        .btn-search{background:#ff0000;color:#fff}
-        .btn-local{background:#0066ff;color:#fff}
         
-        .btn-row{display:flex;gap:8px;flex-wrap:wrap}
-        .btn-row button{flex:1;min-width:80px;padding:10px;border:none;border-radius:25px;font-size:13px;font-weight:bold;cursor:pointer}
-        .btn-paste{background:#333;color:#fff}
-        .btn-play{background:#ff0000;color:#fff}
-        .btn-youtube{background:#ff0000;color:#fff}
-        .btn-telefon{background:#0066ff;color:#fff}
-        .btn-folder{background:#333;color:#fff}
+        .btn{height:50px;border-radius:25px;border:none;font-weight:bold;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:6px}
+        .btn:active{transform:scale(0.95)}
+        .btn-yt{background:#ff0000;color:#fff;flex:1;font-size:14px}
+        .btn-local{background:#0066ff;color:#fff;flex:1;font-size:14px}
+        .btn-mic{width:50px;height:50px;border-radius:50%;background:#333;color:#fff;font-size:20px;flex-shrink:0;padding:0}
+        .btn-mic.listening{background:#ff0000;animation:pulse 1.2s infinite}
+        @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,0,0,0.5)}50%{box-shadow:0 0 0 15px rgba(255,0,0,0)}}
+        .btn-paste{background:#333;color:#fff;flex:1;font-size:13px}
+        .btn-folder{background:#222;color:#fff;border:1px dashed #555;font-size:12px;padding:8px 14px;border-radius:20px;cursor:pointer;width:100%;margin-top:8px}
         
-        /* SONUÇLAR */
-        .results-box{display:none;max-height:400px;overflow-y:auto}
-        .results-box::-webkit-scrollbar{width:4px}
+        .status-bar{text-align:center;font-size:12px;color:#888;min-height:18px;margin:5px 0}
+        
+        .results-box{display:none;max-height:350px;overflow-y:auto}
+        .results-box::-webkit-scrollbar{width:3px}
         .results-box::-webkit-scrollbar-track{background:#111}
         .results-box::-webkit-scrollbar-thumb{background:#ff0000;border-radius:2px}
         
-        .results-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #333}
-        .btn-close{background:none;border:1px solid #555;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:14px}
+        .results-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #333;font-size:13px}
+        .btn-close{background:none;border:1px solid #555;color:#fff;width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:13px}
         
-        .result-item{display:flex;align-items:center;gap:12px;padding:12px;background:#222;border-radius:10px;margin:6px 0;cursor:pointer;border:2px solid transparent}
-        .result-item:active{background:#2a2a2a}
-        .result-item.playing{border-color:#00ff00!important;background:#1a2a1a!important}
-        .result-item.youtube{border-left:3px solid #ff0000}
-        .result-item.local{border-left:3px solid #0066ff}
-        .result-item img{width:45px;height:45px;border-radius:8px;object-fit:cover;flex-shrink:0;background:#333}
-        .result-icon{width:45px;height:45px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:24px}
-        .result-icon.youtube{background:rgba(255,0,0,0.2)}
-        .result-icon.local{background:rgba(0,102,255,0.2)}
+        .result-item{display:flex;align-items:center;gap:10px;padding:10px;background:#222;border-radius:10px;margin:4px 0;cursor:pointer;border-left:3px solid transparent}
+        .result-item.youtube{border-left-color:#ff0000}
+        .result-item.local{border-left-color:#0066ff}
+        .result-item.playing{background:#1a2a1a!important;border-left-color:#00ff00!important}
+        .result-item img,.result-icon{width:42px;height:42px;border-radius:6px;flex-shrink:0;object-fit:cover;background:#333}
+        .result-icon{display:flex;align-items:center;justify-content:center;font-size:22px}
         .result-info{flex:1;min-width:0}
-        .result-info strong{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px}
-        .result-info small{color:#888;font-size:11px}
-        .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:bold;margin-left:5px}
+        .result-info strong{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .result-info small{color:#888;font-size:10px}
+        .badge{display:inline-block;padding:1px 6px;border-radius:8px;font-size:9px;font-weight:bold}
         .badge-yt{background:#ff0000;color:#fff}
         .badge-local{background:#0066ff;color:#fff}
         
-        /* PLAYER */
         .player-box{display:none}
-        #thumbnail{width:100%;border-radius:12px;margin-bottom:15px;max-height:220px;object-fit:cover;background:#222}
-        #title{font-size:1.1em;margin-bottom:4px;word-break:break-word}
-        #artist{color:#888;font-size:0.9em;margin-bottom:18px}
-        #source{font-size:11px;margin-bottom:10px}
-        #source .badge{font-size:11px;padding:4px 10px}
+        #thumbnail{width:100%;border-radius:12px;margin-bottom:12px;max-height:200px;object-fit:cover;background:#222}
+        #title{font-size:1.1em;margin-bottom:3px;word-break:break-word}
+        #artist{color:#888;font-size:0.85em;margin-bottom:15px}
         
-        .controls{display:flex;gap:10px;justify-content:center;align-items:center;margin:15px 0}
-        .controls button{width:52px;height:52px;border-radius:50%;border:none;font-size:20px;cursor:pointer;background:#333;color:#fff;display:flex;align-items:center;justify-content:center}
+        .controls{display:flex;gap:8px;justify-content:center;margin:12px 0}
+        .controls button{width:50px;height:50px;border-radius:50%;border:none;font-size:18px;cursor:pointer;background:#333;color:#fff}
         .controls button:active{transform:scale(0.9)}
-        .controls button:disabled{opacity:0.25}
-        .btn-play-main{width:70px!important;height:70px!important;font-size:28px!important;background:#ff0000!important;box-shadow:0 0 25px rgba(255,0,0,0.4)}
+        .controls button:disabled{opacity:0.2}
+        .btn-play-main{width:65px!important;height:65px!important;font-size:26px!important;background:#ff0000!important}
         
-        .volume-row{display:flex;align-items:center;gap:10px;padding:10px 15px;background:#222;border-radius:20px}
-        .volume-row input[type=range]{flex:1;accent-color:#ff0000;height:4px}
+        .volume-row{display:flex;align-items:center;gap:8px;padding:8px 12px;background:#222;border-radius:20px}
+        .volume-row input[type=range]{flex:1;accent-color:#ff0000;height:3px}
         
-        /* KOMUT İPUCU */
-        .commands{font-size:11px;color:#555;text-align:center;padding:10px;line-height:1.8}
-        .commands span{color:#00ff00}
-        
-        /* PLAYLIST */
-        .playlist-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
-        .playlist-item{display:flex;align-items:center;gap:10px;padding:11px;background:#222;border-radius:10px;margin:5px 0;cursor:pointer;border:2px solid transparent}
+        .playlist-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-size:14px}
+        .playlist-item{display:flex;align-items:center;gap:8px;padding:10px;background:#222;border-radius:8px;margin:3px 0;cursor:pointer}
         .playlist-item.active{background:linear-gradient(135deg,#cc0000,#ff0000)}
-        .playlist-item img{width:40px;height:40px;border-radius:6px;flex-shrink:0}
+        .playlist-item img,.playlist-item .icon{width:35px;height:35px;border-radius:5px;flex-shrink:0}
         .playlist-item .info{flex:1;min-width:0}
-        .playlist-item strong{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-        .playlist-item small{color:#888;font-size:11px}
-        .btn-remove{width:28px;height:28px;border-radius:50%;border:1px solid #f44;background:transparent;color:#f44;font-size:14px;cursor:pointer;flex-shrink:0}
+        .playlist-item strong{display:block;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .playlist-item small{color:#888;font-size:10px}
+        .btn-remove{width:24px;height:24px;border-radius:50%;border:1px solid #f44;background:transparent;color:#f44;font-size:12px;cursor:pointer;flex-shrink:0;padding:0}
         
-        .loading-state{text-align:center;padding:30px;color:#888}
-        .spinner{width:35px;height:35px;border:3px solid #333;border-top:3px solid #ff0000;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 15px}
+        .loading-state{text-align:center;padding:25px;color:#888}
+        .spinner{width:30px;height:30px;border:3px solid #333;border-top:3px solid #ff0000;border-radius:50%;animation:spin 0.7s linear infinite;margin:0 auto 12px}
         @keyframes spin{to{transform:rotate(360deg)}}
-        .empty-state{text-align:center;color:#555;padding:30px}
+        .empty-state{text-align:center;color:#555;padding:25px;font-size:13px}
         
         #playerFrame{position:fixed;bottom:-9999px;right:-9999px;width:1px;height:1px;opacity:0;pointer-events:none}
-        #localAudio{display:none}
     </style>
 </head>
 <body>
     <div class="top-bar">
-        <span class="version">🎵 v13.0</span>
-        <span class="top-title">YT Müzik • Sesli Komut</span>
+        <span class="version">🎵 v14.0</span>
+        <span class="top-title">Bas-Konuş Müzik</span>
     </div>
 
     <div class="container">
-        <!-- MİKROFON DURUMU -->
-        <div class="mic-status off" id="micStatus">
-            <div class="mic-dot"></div>
-            <span class="mic-text">🎤 Sürekli Dinleme: KAPALI</span>
-            <button class="btn-mic-toggle" onclick="toggleContinuousListening()" id="btnMicToggle">Aç</button>
-        </div>
-        
-        <!-- SESLİ KOMUT İPUÇLARI -->
-        <div class="commands" id="commands">
-            <span>🎤 "Telefonda ara şarkı adı"</span> - Yerel dosyalarda ara<br>
-            <span>🔍 "YouTube şarkı adı"</span> - YouTube'da ara<br>
-            <span>⏯️ "Dur", "Devam", "Sonraki", "Önceki"</span> - Kontroller
-        </div>
-
         <!-- ARAMA -->
         <div class="box">
             <div class="search-row">
-                <input type="text" id="searchInput" placeholder="Şarkı ara veya komut ver..." autocomplete="off">
-                <button onclick="searchYouTube()" class="btn-icon btn-search" title="YouTube Ara">🔍</button>
-                <button onclick="searchLocal()" class="btn-icon btn-local" title="Telefonda Ara">📱</button>
+                <input type="text" id="searchInput" placeholder="Şarkı ara veya link yapıştır..." autocomplete="off">
+                <button onclick="startVoiceSearch()" class="btn btn-mic" id="micBtn" title="Sesli Ara">🎤</button>
             </div>
-            <div class="btn-row">
-                <button onclick="pasteAndPlay()" class="btn-paste">📋 Yapıştır</button>
-                <button onclick="playFromInput()" class="btn-play">▶️ Oynat</button>
-                <button onclick="pickFolder()" class="btn-folder">📂 Klasör Seç</button>
+            <div class="search-row">
+                <button onclick="searchYouTube()" class="btn btn-yt">🔍 YouTube'da Ara</button>
+                <button onclick="searchLocal()" class="btn btn-local">📱 Telefonda Ara</button>
             </div>
+            <div class="search-row">
+                <button onclick="pasteAndPlay()" class="btn btn-paste">📋 Yapıştır ve Oynat</button>
+            </div>
+            <button onclick="pickFolder()" class="btn-folder" id="folderBtn">
+                📂 Klasör Seç (<span id="folderInfo">seçilmedi</span>)
+            </button>
+            <div class="status-bar" id="statusBar"></div>
         </div>
 
         <!-- SONUÇLAR -->
         <div id="resultsBox" class="box results-box">
             <div class="results-header">
-                <h3 id="resultsTitle">🔍 Sonuçlar (<span id="resultCount">0</span>)</h3>
+                <span id="resultsTitle">Sonuçlar (<span id="resultCount">0</span>)</span>
                 <button onclick="closeResults()" class="btn-close">✕</button>
             </div>
             <div id="resultsList"></div>
@@ -159,7 +126,6 @@
             <img id="thumbnail" src="" alt="Kapak">
             <h3 id="title">-</h3>
             <p id="artist">-</p>
-            <p id="source"></p>
             
             <div class="controls">
                 <button onclick="prevTrack()" id="prevBtn" disabled>⏮️</button>
@@ -177,19 +143,18 @@
         <!-- PLAYLIST -->
         <div class="box">
             <div class="playlist-header">
-                <h3>📜 Çalma Listesi (<span id="count">0</span>)</h3>
-                <button onclick="clearPlaylist()" style="border:1px solid #f44;color:#f44;background:transparent;padding:5px 12px;border-radius:15px;font-size:11px;cursor:pointer">🗑 Temizle</button>
+                <span>📜 Çalma Listesi (<span id="count">0</span>)</span>
+                <button onclick="clearPlaylist()" style="background:transparent;border:1px solid #f44;color:#f44;padding:4px 10px;border-radius:12px;font-size:11px;cursor:pointer">Temizle</button>
             </div>
             <div id="playlist"></div>
         </div>
     </div>
 
-    <!-- HIDDEN ELEMENTS -->
     <div id="playerFrame"><div id="ytplayer"></div></div>
-    <audio id="localAudio" controls></audio>
+    <audio id="localAudio" style="display:none"></audio>
     <input type="file" id="folderInput" webkitdirectory directory multiple style="display:none" accept="audio/*">
 
     <script src="https://www.youtube.com/iframe_api"></script>
-    <script src="app.js?v=13.0"></script>
+    <script src="app.js?v=14.0"></script>
 </body>
 </html>
