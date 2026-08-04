@@ -5,8 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#ff0000">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>YT Müzik v16.2</title>
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Welly Player v17.1</title>
     <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
     <style>
         *{margin:0;padding:0;box-sizing:border-box}
         body{background:#0a0a0a;color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;padding:15px;padding-bottom:140px;min-height:100vh}
@@ -18,7 +21,7 @@
         
         .box{background:#1a1a1a;border-radius:15px;padding:18px;margin-bottom:15px;border:1px solid #222}
         
-        /* PLAYER - HER ZAMAN ÜSTTE */
+        /* PLAYER - STICKY */
         .player-box{
             display:none;
             position:sticky;
@@ -39,7 +42,6 @@
         .btn-mic{width:50px;height:50px;border-radius:50%;background:#333;color:#fff;font-size:20px;flex-shrink:0;padding:0}
         .btn-mic.listening{background:#ff0000;animation:pulse 1.2s infinite}
         @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,0,0,0.5)}50%{box-shadow:0 0 0 15px rgba(255,0,0,0)}}
-        .btn-paste{background:#333;color:#fff;flex:1;font-size:13px}
         .btn-folder{background:#222;color:#fff;border:1px dashed #555;font-size:12px;padding:8px 14px;border-radius:20px;cursor:pointer;width:100%;margin-top:8px}
         
         .status-bar{text-align:center;font-size:12px;color:#888;min-height:18px;margin:5px 0}
@@ -65,7 +67,8 @@
         .badge-yt{background:#ff0000;color:#fff}
         .badge-local{background:#0066ff;color:#fff}
         
-        #thumbnail{width:100%;border-radius:12px;margin-bottom:12px;max-height:180px;object-fit:cover;background:#222}
+        #thumbnail{width:100%;border-radius:12px;margin-bottom:12px;max-height:180px;object-fit:cover;background:#222;display:none}
+        #thumbnail[src]:not([src=""]):not([src="#"]){display:block}
         #title{font-size:1.1em;margin-bottom:3px;word-break:break-word}
         #artist{color:#888;font-size:0.85em;margin-bottom:10px}
         
@@ -100,14 +103,14 @@
 </head>
 <body>
     <div class="top-bar">
-        <span class="version">🎵 v16.2</span>
-        <span class="top-title">YouTube Müzik</span>
+        <span class="version">🎵 v17.1</span>
+        <span class="top-title">Welly Player</span>
     </div>
 
     <div class="container">
-        <!-- PLAYER - EN ÜSTTE, STICKY -->
+        <!-- PLAYER - EN ÜSTTE STICKY -->
         <div id="player" class="box player-box">
-            <img id="thumbnail" src="" alt="Kapak">
+            <img id="thumbnail" src="" alt="">
             <h3 id="title">-</h3>
             <p id="artist">-</p>
             
@@ -139,9 +142,6 @@
                 <button onclick="searchYouTube()" class="btn btn-yt">🔍 YouTube'da Ara</button>
                 <button onclick="searchLocal()" class="btn btn-local">📱 Telefonda Ara</button>
             </div>
-            <div class="search-row">
-                <button onclick="pasteAndPlay()" class="btn btn-paste">📋 Yapıştır ve Oynat</button>
-            </div>
             <button onclick="pickFolder()" class="btn-folder" id="folderBtn">
                 📂 Klasör Seç (<span id="folderInfo">seçilmedi</span>)
             </button>
@@ -172,6 +172,6 @@
     <input type="file" id="folderInput" webkitdirectory directory multiple style="display:none" accept="audio/*">
 
     <script src="https://www.youtube.com/iframe_api"></script>
-    <script src="app.js?v=16.2"></script>
+    <script src="app.js?v=17.1"></script>
 </body>
 </html>
