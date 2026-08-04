@@ -525,4 +525,9 @@ function showStatus(msg) { document.getElementById('statusBar').textContent = ms
 
 // Enter
 document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('searchInput').addEventListener('keypress', (e) => { if (e.key==='Enter') {
+    document.getElementById('searchInput').addEventListener('keypress', (e) => { if (e.key==='Enter') { const v=document.getElementById('searchInput').value.trim(); if (v.includes('youtube.com')||v.includes('youtu.be')) pasteAndPlay(); else searchYouTube(); } });
+});
+
+document.getElementById('volSlider').value = localStorage.getItem('vol_v17') || 70;
+updateUI();
+console.log('✅ v17.3 hazır - Otomatik M3U + Çoklu Playlist');
