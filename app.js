@@ -1,5 +1,5 @@
-// Welly Player v18.0 - YouTube audio player, arka planda çalma
-console.log('🎵 Welly Player v18.0');
+// Welly Player v18.1 - Piped API ile YouTube ses akışı
+console.log('🎵 Welly Player v18.1');
 
 let playlist = [];
 let currentIndex = -1;
@@ -18,7 +18,7 @@ let shuffleHistory = [];
 
 // ============ INDEXEDDB ============
 
-const DB_NAME = 'welly_db_v17';
+const DB_NAME = 'welly_db_v18';
 const DB_VERSION = 2;
 const STORE_FILES = 'music_files';
 const STORE_M3U = 'm3u_playlists';
@@ -91,7 +91,7 @@ async function loadM3UFromDB() {
 
 // ============ YÜKLE ============
 
-try { playlist = JSON.parse(localStorage.getItem('playlist_v17') || '[]'); } catch(e) { playlist = []; }
+try { playlist = JSON.parse(localStorage.getItem('playlist_v18') || '[]'); } catch(e) { playlist = []; }
 
 Promise.all([loadFilesFromDB(), loadM3UFromDB()]).then(([files, m3u]) => {
     if (files.length > 0) {
@@ -305,31 +305,42 @@ function playTrack(track) {
 async function playYouTube(track) {
     try {
         showStatus('🔗 YouTube sesi alınıyor...');
-        const resp = await fetch(`/api/audio?videoId=${track.id}`);
-        const data = await resp.json();
-        if (data.error) throw new Error(data.error);
+        // Piped API'den ses akışını al
+        const response = await fetch(`https://pipedapi.kavin.rocks/streams/${track.id}`);
+        if (!response.ok) throw new Error('Piped API yanıt vermedi');
+        const data = await response.json();
         
-        localAudio.src = data.url;
-        localAudio.volume = (localStorage.getItem('vol_v17') || 70) / 100;
+        // Ses akışlarını bul (m4a veya webm)
+        const audioStreams = data.audioStreams || [];
+        if (audioStreams.length === 0) throw new Error('Ses akışı bulunamadı');
+        
+        // En düşük bitrate'i seç (veri tasarrufu) veya ilkini al
+        audioStreams.sort((a, b) => (parseInt(a.bitrate) || 128) - (parseInt(b.bitrate) || 128));
+        const audioUrl = audioStreams[0].url;
+        
+        localAudio.src = audioUrl;
+        localAudio.volume = (localStorage.getItem('vol_v18') || 70) / 100;
         
         localAudio.onloadedmetadata = () => {
             localAudio.play();
             startSeekUpdate();
             isPlaying = true;
             document.getElementById('playBtn').textContent = '⏸️';
+            showStatus('');
         };
         localAudio.onended = () => { stopSeekUpdate(); nextTrack(); };
-        localAudio.onerror = () => { stopSeekUpdate(); showStatus('❌ YouTube çalınamadı'); nextTrack(); };
+        localAudio.onerror = () => { stopSeekUpdate(); showStatus('❌ Çalınamadı'); nextTrack(); };
         
-        fetch(`https://www.youtube.com/oembed?url=https://youtube.com/watch?v=${track.id}&format=json`)
-            .then(r => r.json()).then(d => {
-                track.title = cleanFileName(d.title.replace(' - YouTube', ''));
-                track.artist = d.author_name || 'YouTube';
-                document.getElementById('title').textContent = track.title;
-                document.getElementById('artist').textContent = track.artist;
-                savePlaylist(); updateUI();
-            }).catch(() => {});
+        // Bilgi güncelle
+        if (data.title) {
+            track.title = cleanFileName(data.title);
+            track.artist = data.uploader || 'YouTube';
+            document.getElementById('title').textContent = track.title;
+            document.getElementById('artist').textContent = track.artist;
+            savePlaylist(); updateUI();
+        }
     } catch(e) {
+        console.error('Piped hatası:', e);
         showStatus('❌ Ses alınamadı: ' + e.message);
         nextTrack();
     }
@@ -339,7 +350,7 @@ function playLocal(track) {
     if (!track.file || !track.file.file) { showStatus('❌ Dosya bulunamadı'); stopAll(); document.getElementById('player').style.display = 'none'; return; }
     try {
         const url = URL.createObjectURL(track.file.file); localAudio.src = url;
-        localAudio.volume = (localStorage.getItem('vol_v17')||70)/100;
+        localAudio.volume = (localStorage.getItem('vol_v18')||70)/100;
         localAudio.onloadedmetadata = () => { localAudio.play(); startSeekUpdate(); };
         localAudio.onended = () => { stopSeekUpdate(); nextTrack(); };
         localAudio.onerror = () => { stopSeekUpdate(); nextTrack(); };
@@ -403,7 +414,7 @@ function prevTrack() {
 
 function pauseTrack() { localAudio.pause(); isPlaying=false; document.getElementById('playBtn').textContent='▶️'; }
 function resumeTrack() { localAudio.play(); isPlaying=true; document.getElementById('playBtn').textContent='⏸️'; }
-function setVolume(val) { localAudio.volume = val/100; localStorage.setItem('vol_v17',val); }
+function setVolume(val) { localAudio.volume = val/100; localStorage.setItem('vol_v18',val); }
 
 // ============ PLAYLIST ============
 
@@ -425,11 +436,11 @@ function removeTrack(i) { event.stopPropagation(); if (currentIndex===i) { stopA
 // ============ YARDIMCILAR ============
 
 function esc(t) { if(!t) return ''; const d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
-function savePlaylist() { try { localStorage.setItem('playlist_v17', JSON.stringify(playlist)); } catch(e) {} }
-function saveSession(t) { try { localStorage.setItem('session_v17', JSON.stringify({id:t.id, index:currentIndex})); } catch(e) {} }
-function restoreSession() { try { const s=localStorage.getItem('session_v17'); if (s && playlist.length) { const d=JSON.parse(s), t=playlist.find(x=>x.id===d.id); if (t) { currentIndex=d.index; document.getElementById('player').style.display='block'; document.getElementById('title').textContent=t.title; document.getElementById('artist').textContent=t.artist; if(t.thumbnail) document.getElementById('thumbnail').src=t.thumbnail; } } } catch(e) {} }
+function savePlaylist() { try { localStorage.setItem('playlist_v18', JSON.stringify(playlist)); } catch(e) {} }
+function saveSession(t) { try { localStorage.setItem('session_v18', JSON.stringify({id:t.id, index:currentIndex})); } catch(e) {} }
+function restoreSession() { try { const s=localStorage.getItem('session_v18'); if (s && playlist.length) { const d=JSON.parse(s), t=playlist.find(x=>x.id===d.id); if (t) { currentIndex=d.index; document.getElementById('player').style.display='block'; document.getElementById('title').textContent=t.title; document.getElementById('artist').textContent=t.artist; if(t.thumbnail) document.getElementById('thumbnail').src=t.thumbnail; } } } catch(e) {} }
 function showStatus(msg) { document.getElementById('statusBar').textContent = msg; }
 
 document.addEventListener('DOMContentLoaded', () => { document.getElementById('searchInput').addEventListener('keypress', (e) => { if (e.key==='Enter') { const v=document.getElementById('searchInput').value.trim(); if (v.includes('youtube.com')||v.includes('youtu.be')) pasteAndPlay(); else searchYouTube(); } }); });
-document.getElementById('volSlider').value = localStorage.getItem('vol_v17') || 70;
-console.log('✅ v18.0 hazır - arka planda YouTube');
+document.getElementById('volSlider').value = localStorage.getItem('vol_v18') || 70;
+console.log('✅ v18.1 hazır - Piped API ile ses');
