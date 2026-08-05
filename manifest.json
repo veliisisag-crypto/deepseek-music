@@ -1,7 +1,7 @@
 {
     "name": "Welly Player",
     "short_name": "Welly",
-    "description": "YouTube ve yerel müzik çalar",
+    "description": "YouTube ve yerel müzik çalar - Arka planda çalma",
     "start_url": "/",
     "display": "standalone",
     "background_color": "#0a0a0a",
