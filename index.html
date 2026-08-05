@@ -5,11 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#ff0000">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Welly Player v17.9</title>
+    <title>Welly Player v18.0</title>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" href="icons/icon-192.png">
-    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/icon-512.png">
     <style>
         *{margin:0;padding:0;box-sizing:border-box}
         body{background:#0a0a0a;color:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;padding:15px;padding-bottom:140px;min-height:100vh}
@@ -21,15 +20,7 @@
         
         .box{background:#1a1a1a;border-radius:15px;padding:18px;margin-bottom:15px;border:1px solid #222}
         
-        /* PLAYER - STICKY */
-        .player-box{
-            display:none;
-            position:sticky;
-            top:10px;
-            z-index:100;
-            background:#1a1a1a;
-            box-shadow:0 5px 20px rgba(0,0,0,0.5);
-        }
+        .player-box{display:none;position:sticky;top:10px;z-index:100;background:#1a1a1a;box-shadow:0 5px 20px rgba(0,0,0,0.5)}
         
         .search-row{display:flex;gap:8px;margin-bottom:8px}
         .search-row input{flex:1;padding:14px 16px;border:2px solid #333;border-radius:25px;background:#111;color:#fff;font-size:15px;-webkit-appearance:none;min-width:0}
@@ -42,7 +33,8 @@
         .btn-mic{width:50px;height:50px;border-radius:50%;background:#333;color:#fff;font-size:20px;flex-shrink:0;padding:0}
         .btn-mic.listening{background:#ff0000;animation:pulse 1.2s infinite}
         @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,0,0,0.5)}50%{box-shadow:0 0 0 15px rgba(255,0,0,0)}}
-        .btn-folder{background:#222;color:#fff;border:1px dashed #555;font-size:12px;padding:8px 14px;border-radius:20px;cursor:pointer;width:100%;margin-top:8px}
+        .btn-folder{background:#222;color:#fff;border:1px dashed #555;font-size:12px;padding:8px 14px;border-radius:20px;cursor:pointer;width:100%;margin-top:5px}
+        .btn-m3u{background:#222;color:#ff8800;border:1px dashed #ff8800;font-size:12px;padding:8px 14px;border-radius:20px;cursor:pointer;width:100%;margin-top:5px}
         
         .status-bar{text-align:center;font-size:12px;color:#888;min-height:18px;margin:5px 0}
         
@@ -66,6 +58,7 @@
         .badge{display:inline-block;padding:1px 6px;border-radius:8px;font-size:9px;font-weight:bold}
         .badge-yt{background:#ff0000;color:#fff}
         .badge-local{background:#0066ff;color:#fff}
+        .badge-m3u{background:#ff8800;color:#fff}
         
         #thumbnail{width:100%;border-radius:12px;margin-bottom:12px;max-height:180px;object-fit:cover;background:#222;display:none}
         #thumbnail[src]:not([src=""]):not([src="#"]){display:block}
@@ -75,11 +68,12 @@
         .seek-row{display:flex;align-items:center;gap:8px;margin-bottom:12px;font-size:11px;color:#888}
         .seek-row input[type=range]{flex:1;accent-color:#ff0000;height:3px;margin:0}
         
-        .controls{display:flex;gap:8px;justify-content:center;margin:12px 0}
-        .controls button{width:50px;height:50px;border-radius:50%;border:none;font-size:18px;cursor:pointer;background:#333;color:#fff}
+        .controls{display:flex;gap:8px;justify-content:center;align-items:center;margin:12px 0}
+        .controls button{width:50px;height:50px;border-radius:50%;border:none;font-size:18px;cursor:pointer;background:#333;color:#fff;display:flex;align-items:center;justify-content:center}
         .controls button:active{transform:scale(0.9)}
         .controls button:disabled{opacity:0.2}
         .btn-play-main{width:65px!important;height:65px!important;font-size:26px!important;background:#ff0000!important}
+        .btn-shuffle{width:50px;height:50px;border-radius:50%;border:none;font-size:18px;cursor:pointer;background:#333;color:#fff;display:flex;align-items:center;justify-content:center;transition:all 0.2s}
         
         .volume-row{display:flex;align-items:center;gap:8px;padding:8px 12px;background:#222;border-radius:20px}
         .volume-row input[type=range]{flex:1;accent-color:#ff0000;height:3px}
@@ -97,18 +91,16 @@
         .spinner{width:30px;height:30px;border:3px solid #333;border-top:3px solid #ff0000;border-radius:50%;animation:spin 0.7s linear infinite;margin:0 auto 12px}
         @keyframes spin{to{transform:rotate(360deg)}}
         .empty-state{text-align:center;color:#555;padding:25px;font-size:13px}
-        
-        #playerFrame{position:fixed;bottom:-9999px;right:-9999px;width:1px;height:1px;opacity:0;pointer-events:none}
     </style>
 </head>
 <body>
     <div class="top-bar">
-        <span class="version">🎵 v17.9</span>
+        <span class="version">🎵 v18.0</span>
         <span class="top-title">Welly Player</span>
     </div>
 
     <div class="container">
-        <!-- PLAYER - EN ÜSTTE STICKY -->
+        <!-- PLAYER -->
         <div id="player" class="box player-box">
             <img id="thumbnail" src="" alt="">
             <h3 id="title">-</h3>
@@ -122,6 +114,7 @@
             <div class="controls">
                 <button onclick="prevTrack()" id="prevBtn" disabled>⏮️</button>
                 <button onclick="togglePlay()" id="playBtn" class="btn-play-main">▶️</button>
+                <button onclick="toggleShuffle()" id="shuffleBtn" class="btn-shuffle" title="Sıralı/Karışık">🔁</button>
                 <button onclick="nextTrack()" id="nextBtn" disabled>⏭️</button>
             </div>
             
@@ -145,6 +138,9 @@
             <button onclick="pickFolder()" class="btn-folder" id="folderBtn">
                 📂 Klasör Seç (<span id="folderInfo">seçilmedi</span>)
             </button>
+            <button onclick="importM3U()" class="btn-m3u">
+                📋 M3U Playlist Yükle
+            </button>
             <div class="status-bar" id="statusBar"></div>
         </div>
 
@@ -167,11 +163,10 @@
         </div>
     </div>
 
-    <div id="playerFrame"><div id="ytplayer"></div></div>
     <audio id="localAudio" style="display:none"></audio>
     <input type="file" id="folderInput" webkitdirectory directory multiple style="display:none" accept="audio/*">
+    <input type="file" id="m3uInput" accept=".m3u,.m3u8" style="display:none" onchange="handleM3U(event)">
 
-    <script src="https://www.youtube.com/iframe_api"></script>
-    <script src="app.js?v=17.8"></script>
+    <script src="app.js?v=18.0"></script>
 </body>
 </html>
