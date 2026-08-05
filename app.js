@@ -1,5 +1,5 @@
 // Welly Player v18.3 - v17.9 + Piped ses akışı (arka planda çalma + stabil geçiş)
-console.log('🎵 Welly Player v18.3');
+console.log('🎵 Welly Player v18.5');
 
 let playlist = [];
 let currentIndex = -1;
@@ -15,7 +15,6 @@ let m3uPlaylists = {};
 let activePlaylist = 'all';
 let shuffleMode = false;
 let shuffleHistory = [];
-let youtubeErrorCount = 0; // Hata zincirini kırmak için
 
 // ============ INDEXEDDB ============
 
@@ -304,72 +303,78 @@ function playTrack(track) {
     document.getElementById('player').scrollIntoView({ behavior: 'smooth' });
 }
 
-async function playYouTube(track) {
-    try {
-        showStatus('🔗 YouTube sesi alınıyor...');
-        const response = await fetch(`https://pipedapi.kavin.rocks/streams/${track.id}`);
-        if (!response.ok) throw new Error('Piped API yanıt vermedi');
-        const data = await response.json();
-        
-        const audioStreams = data.audioStreams || [];
-        if (audioStreams.length === 0) throw new Error('Ses akışı yok');
-        
-        // En düşük bitrate'i seç (veri tasarrufu)
-        audioStreams.sort((a, b) => (parseInt(a.bitrate) || 128) - (parseInt(b.bitrate) || 128));
-        const audioUrl = audioStreams[0].url;
-        
-        localAudio.src = audioUrl;
-        localAudio.volume = (localStorage.getItem('vol_v17') || 70) / 100;
-        
-        localAudio.onloadedmetadata = () => {
-            localAudio.play();
-            startSeekUpdate();
-            isPlaying = true;
-            document.getElementById('playBtn').textContent = '⏸️';
-            showStatus('');
-        };
-        localAudio.onended = () => { stopSeekUpdate(); nextTrack(); };
-        localAudio.onerror = () => {
-            stopSeekUpdate();
-            youtubeErrorCount++;
-            if (youtubeErrorCount >= 2) {
-                // Hata zincirini kır: arama sonuçlarını temizle, dur
-                searchResults = [];
-                searchResultIndex = -1;
-                stopAll();
-                document.getElementById('player').style.display = 'none';
-                showStatus('❌ YouTube oynatılamadı, playliste dönüldü');
-                youtubeErrorCount = 0;
-            } else {
-                showStatus('⚠️ YouTube hatası, atlanıyor...');
-                setTimeout(() => nextTrack(), 500);
+function playYouTube(track) {
+    showStatus('🔗 YouTube sesi alınıyor...');
+    
+    // Piped API'den ses akışını al
+    fetch(`https://pipedapi.kavin.rocks/streams/${track.id}`)
+        .then(response => {
+            if (!response.ok) throw new Error('API yanıt vermedi');
+            return response.json();
+        })
+        .then(data => {
+            const audioStreams = data.audioStreams || [];
+            if (audioStreams.length === 0) throw new Error('Ses akışı yok');
+            
+            // En düşük bitrate'i seç (veri tasarrufu)
+            audioStreams.sort((a, b) => (parseInt(a.bitrate) || 128) - (parseInt(b.bitrate) || 128));
+            const audioUrl = audioStreams[0].url;
+            
+            localAudio.src = audioUrl;
+            localAudio.volume = (localStorage.getItem('vol_v18') || 70) / 100;
+            localAudio.play().then(() => {
+                startSeekUpdate();
+                isPlaying = true;
+                document.getElementById('playBtn').textContent = '⏸️';
+                showStatus('');
+            }).catch(e => {
+                console.error('Oynatma hatası:', e);
+                showStatus('⚠️ Oynatma başarısız, atlanıyor...');
+                nextTrack();
+            });
+            
+            // Bilgi güncelle
+            if (data.title) {
+                track.title = cleanFileName(data.title);
+                track.artist = data.uploader || 'YouTube';
+                document.getElementById('title').textContent = track.title;
+                document.getElementById('artist').textContent = track.artist;
+                savePlaylist(); updateUI();
             }
-        };
-        
-        // Bilgi güncelle
-        if (data.title) {
-            track.title = cleanFileName(data.title);
-            track.artist = data.uploader || 'YouTube';
-            document.getElementById('title').textContent = track.title;
-            document.getElementById('artist').textContent = track.artist;
-            savePlaylist(); updateUI();
-        }
-    } catch(e) {
-        console.error('Piped hatası:', e);
-        youtubeErrorCount++;
-        if (youtubeErrorCount >= 2) {
-            searchResults = [];
-            searchResultIndex = -1;
-            stopAll();
-            document.getElementById('player').style.display = 'none';
-            showStatus('❌ YouTube sesi alınamadı');
-            youtubeErrorCount = 0;
-        } else {
-            showStatus('⚠️ Ses alınamadı, atlanıyor...');
-            setTimeout(() => nextTrack(), 500);
-        }
-    }
+        })
+        .catch(error => {
+            console.error('Piped hatası:', error);
+            showStatus('❌ ' + error.message);
+            setTimeout(() => nextTrack(), 1000);
+        });
+    
+    localAudio.onended = () => { stopSeekUpdate(); nextTrack(); };
+    localAudio.onerror = () => {
+        stopSeekUpdate();
+        showStatus('❌ Çalınamadı');
+        nextTrack();
+    };
 }
+
+function playLocal(track) {
+    if (!track.file || !track.file.file) {
+        showStatus('❌ Dosya bulunamadı');
+        stopAll();
+        document.getElementById('player').style.display = 'none';
+        return;
+    }
+    const url = URL.createObjectURL(track.file.file);
+    localAudio.src = url;
+    localAudio.volume = (localStorage.getItem('vol_v18') || 70) / 100;
+    localAudio.play().then(() => {
+        startSeekUpdate();
+        isPlaying = true;
+        document.getElementById('playBtn').textContent = '⏸️';
+    }).catch(() => {});
+    localAudio.onended = () => { stopSeekUpdate(); nextTrack(); };
+    localAudio.onerror = () => { stopSeekUpdate(); nextTrack(); };
+}
+
 
 function playLocal(track) {
     if (!track.file || !track.file.file) { showStatus('❌ Dosya bulunamadı'); stopAll(); document.getElementById('player').style.display = 'none'; return; }
